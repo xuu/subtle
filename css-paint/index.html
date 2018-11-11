@@ -6,18 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Axu</title>
+  <script>
+    CSS.paintWorklet.addModule('./MyLogo.js');
+  </script>
   <style>
     body {
-      width: 100vw;
       height: 100vh;
-      padding: 0;
       margin: 0;
-      background-image: paint(mylogo);
+      padding: 0;
+      background-image: paint(MyLogo);
     }
   </style>
-  <script>
-    CSS.paintWorklet.addModule('css-paint.js');
-  </script>
 </head>
 
 <body>
