@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dominoes</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        align-content: flex-start;
+        font-size: 0;
+      }
+      .d {
+        width: calc(100vw / 25);
+        height: calc(100vh / 25);
+        background-color: #0ff;
+        font-size: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="./lib/anime.min.js"></script>
+    <script>
+      const cols = 25;
+      const rows = 25;
+      const items = rows * cols;
+      const container = document.createElement('div');
+      container.classList.add('container');
+      container.dataset.items = items;
+      document.body.appendChild(container);
+      for (let i = 0; i < items; i++) {
+        const div = document.createElement('div');
+        div.dataset.index = i;
+        div.classList.add('d');
+        div.style.opacity = 0;
+        container.appendChild(div);
+      }
+      anime({
+        targets: '.d',
+        backgroundColor: '#aed',
+        borderRadius: ['0%', '50%'],
+        opacity: [0, 1],
+        easing: 'easeInOutQuad'
+      });
+    </script>
+  </body>
+</html>
