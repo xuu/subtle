@@ -31,9 +31,6 @@
       const ctx = canvas.getContext('2d');
       const { width } = canvas;
 
-      ctx.fillStyle = colors[0];
-      ctx.fillRect(0, 0, width, width);
-
       const r0 = (1 / 21) * width;
       const r1 = 6 * r0;
       const x1 = width / 2;
@@ -46,6 +43,9 @@
       const y3 = y2;
 
       const c = 2 * Math.PI;
+
+      ctx.fillStyle = colors[0];
+      ctx.fillRect(0, 0, width, width);
 
       ctx.beginPath();
       ctx.fillStyle = colors[1];
