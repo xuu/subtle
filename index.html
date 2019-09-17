@@ -82,7 +82,8 @@
       }
 
       function main() {
-        squareBg(colors[0]);
+        ctx.fillStyle = colors[0];
+        ctx.fillRect(0, 0, width, width);
         circle(x1, y1, r1, colors[1]);
         circle(x2, y2, r2, colors[2]);
         circle(x3, y3, r3, colors[3]);
@@ -90,8 +91,7 @@
         ctx.lineWidth = 12;
         ctx.beginPath();
         ctx.moveTo(x1, y1 + r2);
-        // ctx.lineTo(x1, y1 + r2);
-        ctx.lineTo(width, y1 + r2);
+        ctx.lineTo(width - 2 * r0, y1 + r2);
         ctx.stroke();
       }
 
@@ -119,11 +119,6 @@
         ctx.beginPath();
         ctx.arc(width / 2, width / 2, r1, 0, 2 * Math.PI);
         ctx.stroke();
-      }
-
-      function squareBg(color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, width, width);
       }
 
       function circle(x, y, r, color) {
