@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="author" content="Axu Wei" />
+    <title>Tetris</title>
+  </head>
+  <body>
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 12px;
+        margin: 0;
+        padding: 1em;
+        text-align: center;
+      }
+      .tetris {
+        --color-fill: rgba(24, 24, 24, 1);
+        --color-blank: rgba(223, 222, 222, 1);
+        display: inline-block;
+        padding: 1px;
+        border: 1px solid var(--color-fill);
+        background-color: white;
+        position: relative;
+        text-align: center;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      .tetris:focus {
+        outline: 1px solid springgreen;
+      }
+      .tetris::before {
+        content: 'SCORE/LEVEL: ' attr(data-sl) '\A'attr(data-status);
+        white-space: pre;
+        display: block;
+        color: var(--color-fill);
+        line-height: 20px;
+        background-color: transparent;
+      }
+      .tetris::after {
+        content: 'THE PANEL\00000aclick/tap inside to play\00000aclick/tap outside to stop\A\ATOUCH SCREEN\Aswipe left/right to move\Asingle tap to rotate\A\AKEYBOARD\Aleft/rotate/right/speedup:\A←/↑/→/↓ or j/i/l/k or a/w/d/s\00000adrop: space\Apause: p\Arestart: r';
+        font-family: Consolas, Monaco, 'Andale Mono', monospace;
+        white-space: pre;
+        display: block;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        padding: 2em 1em;
+        color: white;
+        line-height: 1.6;
+        opacity: 1;
+        transition: opacity 300ms ease-out;
+        background-color: rgba(24, 24, 24, 0.8);
+      }
+      .tetris:focus::after {
+        opacity: 0;
+      }
+    </style>
+    <script>
+      window.onload = function init() {
+        document.body.appendChild(tetris(15, 12, 20))
+      }
+
+      function tetris(rows, cols, blockWidth) {
+        if (rows < 10 || cols < 10 || blockWidth < 10) {
+          throw new Error("At least 10 in 'rows', 'cols', and 'blockWidth'.")
+        }
+        const view = createView(rows, cols, blockWidth)
+        const model = createModel(rows, cols)
+        setup(view, model)
+        return view.elm
+      }
+
+      function createView(rows, cols, blockWidth) {
+        const bgGrid = `linear-gradient(to right, white 100%, transparent 0),
+          linear-gradient(to top, transparent ${blockWidth}px, white 0),
+          linear-gradient(to right, var(--color-blank) ${blockWidth}px, white 0)`
+        const bgPos = '1px 1px, 1px -2px, 1px 0'
+        const bgSize = `100% 60px, ${blockWidth + 1}px ${blockWidth +
+          1}px, ${blockWidth + 1}px ${blockWidth}px`
+        const bgRepeat = 'no-repeat, repeat, repeat'
+        const bgFill =
+          'linear-gradient(to right, var(--color-fill) WIDTHpx, transparent 0),'
+        const bgFillSize = `${blockWidth}px ${blockWidth}px,`
+
+        const elm = document.createElement('div')
+        const { style } = elm
+        elm.classList.add('tetris')
+        elm.dataset.sl = '0/1'
+        elm.setAttribute('tabIndex', 1)
+        style.boxSizing = 'content-box'
+        style.width = cols * (blockWidth + 1) + 'px'
+        style.height = 60 + rows * (blockWidth + 1) + 'px'
+        style.backgroundImage = bgGrid
+        style.backgroundPosition = bgPos
+        style.backgroundSize = bgSize
+        style.backgroundRepeat = bgRepeat
+        style.backgroundClip = 'content-box'
+
+        return {
+          elm,
+          rows,
+          cols,
+          blockWidth,
+          bgGrid,
+          bgRepeat,
+          bgPos,
+          bgSize,
+          bgFill,
+          bgFillSize
+        }
+      }
+
+      function updateView(view, model) {
+        const {
+          elm: { style, dataset },
+          blockWidth
+        } = view
+        const { data } = model
+        let i = 0
+        let pos = ''
+        if (!data.gameOver) {
+          data.nextTetroCoords.forEach(([x, y]) => {
+            pos += `calc(50% + ${x * (8 + 1)}px) ${60 + y * (8 + 1)}px,`
+          })
+        }
+        data.currentTetroCoords.forEach(([x, y]) => {
+          if (y >= 0) {
+            i++
+            pos += `${x * (blockWidth + 1)}px ${62 + y * (blockWidth + 1)}px,`
+          }
+        })
+        data.matrix.forEach((row, ri) => {
+          row.forEach((col, ci) => {
+            if (col.description === 'fill') {
+              i++
+              pos += `${ci * (blockWidth + 1)}px ${62 +
+                ri * (blockWidth + 1)}px,`
+            }
+          })
+        })
+        // update
+        style.backgroundImage =
+          (data.gameOver ? '' : view.bgFill.replace('WIDTH', '8').repeat(4)) +
+          view.bgFill.replace('WIDTH', blockWidth).repeat(i) +
+          view.bgGrid
+        style.backgroundPosition = pos + view.bgPos
+        style.backgroundRepeat =
+          'no-repeat,'.repeat(i + (data.gameOver ? 0 : 4)) + view.bgRepeat
+        style.backgroundSize =
+          (data.gameOver ? '' : '9px 8px,'.repeat(4)) +
+          view.bgFillSize.repeat(i) +
+          view.bgSize
+        dataset.sl = `${data.score}/${data.level}`
+        dataset.status = data.gameOver ? 'Game Over!' : ''
+      }
+
+      function derivedLevel(score) {
+        if (score < 1000) {
+          return 1
+        } else if (score < 3000) {
+          return 2
+        } else if (score < 5000) {
+          return 3
+        } else if (score < 7000) {
+          return 4
+        } else {
+          return 5
+        }
+      }
+
+      function derivedSpeed(level) {
+        switch (level) {
+          case 0:
+          case 1:
+            return 300
+          case 2:
+            return 200
+          case 3:
+            return 100
+          case 4:
+            return 50
+          default:
+            return 20
+        }
+      }
+
+      function createModel(rows, cols) {
+        const data = {}
+        const fill = Symbol('fill')
+        const blank = Symbol('blank')
+        const tetrominos = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
+        const randomTetro = () => tetrominos[Math.floor(Math.random() * 7)]
+
+        const tetroDoords = tetro => {
+          switch (tetro) {
+            case 'I':
+              return [[0, -4], [0, -3], [0, -2], [0, -1]]
+            case 'J':
+              return [[1, -3], [1, -2], [1, -1], [0, -1]]
+            case 'L':
+              return [[0, -3], [0, -2], [0, -1], [1, -1]]
+            case 'O':
+              return [[0, -2], [1, -2], [0, -1], [1, -1]]
+            case 'S':
+              return [[2, -2], [1, -2], [1, -1], [0, -1]]
+            case 'T':
+              return [[0, -2], [1, -2], [2, -2], [1, -1]]
+            case 'Z':
+              return [[0, -2], [1, -2], [1, -1], [2, -1]]
+            default:
+              throw new Error(`Unexpected tetromino: ${tetro}`)
+          }
+        }
+
+        const createMatrix = (rs, cs) => {
+          const m = []
+          for (let r = 0; r < rs; r++) {
+            m.push([])
+            for (let c = 0; c < cs; c++) {
+              m[r].push(blank)
+            }
+          }
+          return m
+        }
+
+        const willCrash = newCoords =>
+          newCoords.some(
+            ([x, y]) =>
+              x < 0 ||
+              x >= cols ||
+              y >= rows ||
+              (x >= 0 && y >= 0 && data.matrix[y][x] === fill)
+          )
+
+        const x0 = Math.floor(cols / 2 - 1)
+        const fillIn = () => {
+          data.currentTetroCoords.forEach(([x, y]) => {
+            if (y < 0) {
+              data.gameOver = true
+            } else {
+              data.matrix[y][x] = fill
+            }
+          })
+          data.currentTetro = data.nextTetro
+          data.currentTetroCoords = data.nextTetroCoords.map(([x, y]) => [
+            x + x0,
+            y
+          ])
+          data.nextTetro = randomTetro()
+          data.nextTetroCoords = tetroDoords(data.nextTetro)
+
+          const remain = data.matrix.filter(row =>
+            row.some(col => col === blank)
+          )
+          const rowsRemain = remain.length
+          if (rowsRemain < rows) {
+            const rowsMissing = rows - rowsRemain
+            data.matrix = [...createMatrix(rowsMissing, cols), ...remain]
+            data.score += 100 * Math.pow(2, rowsMissing - 1)
+            data.level = derivedLevel(data.score)
+            data.speed = derivedSpeed(data.level)
+          }
+        }
+
+        const moveDown = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x, y + 1])
+          if (willCrash(newCoords)) {
+            fillIn()
+            return false
+          } else {
+            data.currentTetroCoords = newCoords
+            return true
+          }
+        }
+
+        const dropDown = () => {
+          while (moveDown()) {}
+        }
+
+        const moveLeft = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x - 1, y])
+          if (!willCrash(newCoords)) {
+            data.currentTetroCoords = newCoords
+          }
+        }
+
+        const moveRight = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x + 1, y])
+          if (!willCrash(newCoords)) {
+            data.currentTetroCoords = newCoords
+          }
+        }
+
+        const rotate = () => {
+          if (data.currentTetro === 'O') {
+            return
+          }
+          for (let dx of [0, -1, 1, -2, 2]) {
+            let [, [x0, y0]] = data.currentTetroCoords
+            x0 += dx
+            newCoords = data.currentTetroCoords.map(([x, y]) => [
+              x0 + y0 - y,
+              y0 + x + dx - x0
+            ])
+            if (!willCrash(newCoords)) {
+              data.currentTetroCoords = newCoords
+              break
+            }
+          }
+        }
+
+        const init = () => {
+          data.currentTetro = randomTetro()
+          data.currentTetroCoords = tetroDoords(data.currentTetro).map(
+            ([x, y]) => [x + x0, y]
+          )
+          data.nextTetro = randomTetro()
+          data.nextTetroCoords = tetroDoords(data.nextTetro)
+          data.score = 0
+          data.level = 1
+          data.speed = 300
+          data.gameOver = false
+          data.matrix = createMatrix(rows, cols)
+        }
+
+        init()
+        return {
+          data,
+          moveDown,
+          moveLeft,
+          moveRight,
+          rotate,
+          dropDown,
+          restart: init
+        }
+      }
+
+      function setup(view, model) {
+        const { data } = model
+        let timeStamp = performance.now()
+        let rAFId = void 0
+
+        function run(time = performance.now()) {
+          if (time - timeStamp > data.speed && !data.gameOver) {
+            timeStamp = time
+            model.moveDown()
+            updateView(view, model)
+          }
+          rAFId = requestAnimationFrame(run)
+        }
+
+        let x0, y0, x, y, t0
+        view.elm.addEventListener('click', () => {
+          if (rAFId) {
+            model.rotate()
+            updateView(view, model)
+          } else {
+            run()
+          }
+        })
+        view.elm.addEventListener('blur', () => {
+          cancelAnimationFrame(rAFId)
+          rAFId = void 0
+        })
+        // touch screen
+        view.elm.addEventListener(
+          'touchstart',
+          ({ touches: [{ clientX, clientY }] }) => {
+            x0 = x = clientX
+            y0 = y = clientY
+            t0 = performance.now()
+          }
+        )
+        view.elm.addEventListener('touchmove', e => {
+          e.preventDefault()
+          const t = performance.now()
+          if (t - t0 < 100) {
+            return
+          }
+          const {
+            touches: [{ clientX, clientY }]
+          } = e
+          t0 = t
+          x = clientX
+          y = clientY
+          if (y - y0 > 20) {
+            model.moveDown()
+          } else if (x - x0 > 10) {
+            model.moveRight()
+          } else if (x - x0 < -10) {
+            model.moveLeft()
+          } else {
+            return
+          }
+          updateView(view, model)
+        })
+        // keyboard
+        view.elm.addEventListener('keydown', e => {
+          if (data.gameOver) {
+            switch (e.key) {
+              case 'r':
+              case 'Enter': {
+                model.restart()
+                run()
+              }
+            }
+            return
+          }
+          if (rAFId === void 0) {
+            run()
+            return
+          }
+          switch (e.key) {
+            case 'Enter': {
+              model.dropDown()
+              break
+            }
+            case 'ArrowUp':
+            case 'w':
+            case 'i': {
+              model.rotate()
+              break
+            }
+            case 'ArrowRight':
+            case 'd':
+            case 'l': {
+              model.moveRight()
+              break
+            }
+            case 'ArrowLeft':
+            case 'a':
+            case 'j': {
+              model.moveLeft()
+              break
+            }
+            case 'ArrowDown':
+            case 's':
+            case 'k': {
+              model.moveDown()
+              break
+            }
+            case 'p': {
+              cancelAnimationFrame(rAFId)
+              rAFId = void 0
+              return
+            }
+            case 'r': {
+              model.restart()
+              break
+            }
+            case ' ': {
+              model.dropDown()
+              break
+            }
+          }
+          updateView(view, model)
+        })
+      }
+    </script>
+  </body>
+</html>
