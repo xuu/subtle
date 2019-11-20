@@ -4,17 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>axu</title>
+    <meta name="author" content="Axu Wei" />
+    <title>Hi</title>
+  </head>
+  <body>
     <style>
       * {
         margin: 0;
       }
       body {
         background-color: #eee;
-        width: 100vw;
       }
       canvas {
-        transition: border-radius 300ms ease-out;
+        transition: border-radius 200ms ease-out;
       }
       .circle {
         border-radius: 50%;
@@ -28,8 +30,6 @@
         height: 20px;
       }
     </style>
-  </head>
-  <body onload="init()">
     <canvas id="canvas"></canvas>
     <div class="colors">
       <span style="background-color:rgb(255, 255, 255);"></span>
@@ -38,106 +38,99 @@
       <span style="background-color:rgb(255, 40, 40);"></span>
     </div>
     <script>
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      // const width = Math.min(window.innerWidth, 1024);
-      const width = Math.min(window.innerWidth, 600);
-      const r0 = (1 / 20) * width;
-      const colors = Array.from(
-        document.querySelectorAll('.colors span'),
-        node => node.style.backgroundColor
-      );
-      const r1 = 6 * r0;
-      const x1 = width / 2;
-      const y1 = width - 2 * r0 - r1;
+      window.addEventListener('DOMContentLoaded', function() {
+        // const width = Math.min(window.innerWidth, 1024);
+        const width = Math.min(window.innerWidth, 600)
+        const r0 = (1 / 20) * width
+        const r1 = 6 * r0
+        const x1 = width / 2
+        const y1 = width - 2 * r0 - r1
+        const r2 = (2 / 3) * r1
+        const x2 = x1 + r1 / 3
+        const y2 = 2 * r0 + r2
+        const r3 = r2 / 10
+        const x3 = x2 + r2
+        const y3 = y2
 
-      const r2 = (2 / 3) * r1;
-      const x2 = x1 + r1 / 3;
-      const y2 = 2 * r0 + r2;
-
-      const r3 = r2 / 10;
-      const x3 = x2 + r2;
-      const y3 = y2;
-
-      function init() {
-        const loop = [circleToggle, circleToggle, guideLineToggle, main];
-        let index = 0;
+        const colors = Array.from(
+          document.querySelectorAll('.colors span'),
+          node => node.style.backgroundColor
+        )
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        const loop = [circleToggle, circleToggle, withGuideLine, main]
+        let index = 0
         canvas.addEventListener('click', () => {
-          loop[index](ctx, r0, colors);
-          index = index < loop.length - 1 ? index + 1 : 0;
-        });
+          loop[index](ctx, r0, colors)
+          index = index < loop.length - 1 ? index + 1 : 0
+        })
+        canvas.width = width
+        canvas.height = width
+        main()
 
-        canvas.width = width;
-        canvas.height = width;
-        main();
-      }
+        function main() {
+          ctx.fillStyle = colors[0]
+          ctx.fillRect(0, 0, width, width)
+          circleFill(x1, y1, r1, colors[1])
+          circleFill(x2, y2, r2, colors[2])
+          circleFill(x3, y3, r3, colors[3])
+          lineStroke(x1, y1 + r2, width - 2 * r0, y1 + r2, colors[2], 12)
+        }
 
-      function circleToggle() {
-        ctx.canvas.classList.toggle('circle');
-      }
+        function circleToggle() {
+          ctx.canvas.classList.toggle('circle')
+        }
 
-      function guideLineToggle() {
-        main();
-        guideLine();
-      }
+        function withGuideLine() {
+          main()
+          guideLine()
+        }
 
-      function main() {
-        ctx.fillStyle = colors[0];
-        ctx.fillRect(0, 0, width, width);
-        circle(x1, y1, r1, colors[1]);
-        circle(x2, y2, r2, colors[2]);
-        circle(x3, y3, r3, colors[3]);
-        ctx.strokeStyle = colors[2];
-        ctx.lineWidth = 12;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1 + r2);
-        ctx.lineTo(width - 2 * r0, y1 + r2);
-        ctx.stroke();
-      }
+        function guideLine() {
+          const margin = 2 * r0
+          // top
+          glStrole(0, margin, width, margin)
+          // right
+          glStrole(width - margin, 0, width - margin, width)
+          // right inner
+          glStrole(width - 2 * margin, 0, width - 2 * margin, width)
+          // bottom
+          glStrole(0, width - margin, width, width - margin)
+          // left
+          glStrole(margin, 0, margin, width)
+          // left inner
+          glStrole(2 * margin, 0, 2 * margin, width)
+          // v center
+          glStrole(width / 2, 0, width / 2, width)
+          // h center
+          glStrole(0, width / 2, width, width / 2)
+          // arc
+          ctx.beginPath()
+          ctx.arc(width / 2, width / 2, r1, 0, 2 * Math.PI)
+          ctx.stroke()
+        }
 
-      const gline = (x0, y0, x1, y1) => line(x0, y0, x1, y1, '#75ff9a', 0.5);
+        function glStrole(x0, y0, x1, y1) {
+          return lineStroke(x0, y0, x1, y1, '#75ff9a', 0.5)
+        }
 
-      function guideLine() {
-        const margin = 2 * r0;
-        // top
-        gline(0, margin, width, margin);
-        // right
-        gline(width - margin, 0, width - margin, width);
-        // right inner
-        gline(width - 2 * margin, 0, width - 2 * margin, width);
-        // bottom
-        gline(0, width - margin, width, width - margin);
-        // left
-        gline(margin, 0, margin, width);
-        // left inner
-        gline(2 * margin, 0, 2 * margin, width);
-        // v center
-        gline(width / 2, 0, width / 2, width);
-        // h center
-        gline(0, width / 2, width, width / 2);
-        // arc
-        ctx.beginPath();
-        ctx.arc(width / 2, width / 2, r1, 0, 2 * Math.PI);
-        ctx.stroke();
-      }
+        function lineStroke(x0, y0, x1, y1, color, lineWidth) {
+          ctx.strokeStyle = color
+          ctx.lineWidth = lineWidth
+          ctx.beginPath()
+          ctx.moveTo(x0, y0)
+          ctx.lineTo(x1, y1)
+          ctx.stroke()
+        }
 
-      function circle(x, y, r, color) {
-        const c = 2 * Math.PI;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, c);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      function line(x0, y0, x1, y1, color, lineWidth) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-        ctx.stroke();
-      }
+        function circleFill(x, y, r, color) {
+          ctx.fillStyle = color
+          ctx.beginPath()
+          ctx.arc(x, y, r, 0, 2 * Math.PI)
+          ctx.closePath()
+          ctx.fill()
+        }
+      })
     </script>
   </body>
 </html>
