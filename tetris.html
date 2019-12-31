@@ -133,14 +133,15 @@
         data.currentTetroCoords.forEach(([x, y]) => {
           if (y >= 0) {
             i++
-            pos += `${x * (blockWidth + 1)}px ${62 + y * (blockWidth + 1)}px,`
+            pos += `${x * (blockWidth + 1) + 1}px ${62 +
+              y * (blockWidth + 1)}px,`
           }
         })
         data.matrix.forEach((row, ri) => {
           row.forEach((col, ci) => {
             if (col.description === 'fill') {
               i++
-              pos += `${ci * (blockWidth + 1)}px ${62 +
+              pos += `${ci * (blockWidth + 1) + 1}px ${62 +
                 ri * (blockWidth + 1)}px,`
             }
           })
