@@ -93,7 +93,7 @@
         const { style } = elm
         elm.classList.add('tetris')
         elm.dataset.sl = '0/1'
-        elm.setAttribute('tabIndex', 1)
+        elm.setAttribute('tabIndex', 0)
         style.boxSizing = 'content-box'
         style.width = cols * (blockWidth + 1) + 'px'
         style.height = 60 + rows * (blockWidth + 1) + 'px'
@@ -201,19 +201,54 @@
         const tetroDoords = tetro => {
           switch (tetro) {
             case 'I':
-              return [[0, -4], [0, -3], [0, -2], [0, -1]]
+              return [
+                [0, -4],
+                [0, -3],
+                [0, -2],
+                [0, -1]
+              ]
             case 'J':
-              return [[1, -3], [1, -2], [1, -1], [0, -1]]
+              return [
+                [1, -3],
+                [1, -2],
+                [1, -1],
+                [0, -1]
+              ]
             case 'L':
-              return [[0, -3], [0, -2], [0, -1], [1, -1]]
+              return [
+                [0, -3],
+                [0, -2],
+                [0, -1],
+                [1, -1]
+              ]
             case 'O':
-              return [[0, -2], [1, -2], [0, -1], [1, -1]]
+              return [
+                [0, -2],
+                [1, -2],
+                [0, -1],
+                [1, -1]
+              ]
             case 'S':
-              return [[2, -2], [1, -2], [1, -1], [0, -1]]
+              return [
+                [2, -2],
+                [1, -2],
+                [1, -1],
+                [0, -1]
+              ]
             case 'T':
-              return [[0, -2], [1, -2], [2, -2], [1, -1]]
+              return [
+                [0, -2],
+                [1, -2],
+                [2, -2],
+                [1, -1]
+              ]
             case 'Z':
-              return [[0, -2], [1, -2], [1, -1], [2, -1]]
+              return [
+                [0, -2],
+                [1, -2],
+                [1, -1],
+                [2, -1]
+              ]
             default:
               throw new Error(`Unexpected tetromino: ${tetro}`)
           }
@@ -318,9 +353,9 @@
 
         const init = () => {
           data.currentTetro = randomTetro()
-          data.currentTetroCoords = tetroDoords(data.currentTetro).map(
-            ([x, y]) => [x + x0, y]
-          )
+          data.currentTetroCoords = tetroDoords(
+            data.currentTetro
+          ).map(([x, y]) => [x + x0, y])
           data.nextTetro = randomTetro()
           data.nextTetroCoords = tetroDoords(data.nextTetro)
           data.score = 0
