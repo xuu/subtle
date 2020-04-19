@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="Description" content="A metronome for instrument players." />
+    <meta name="Author" content="Axu Wei" />
+    <title>Metronome</title>
+    <style>
+      :root {
+        --color-in: #c74343;
+        --color-out: aqua;
+        --color-light: rgba(255, 255, 255, 0.8);
+        --color-dark: #191919;
+      }
+      html,
+      body {
+        overflow: hidden;
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-size: 16px;
+        color: var(--color-light);
+        background-color: var(--color-dark);
+        font-family: -apple-system-font, BlinkMacSystemFont, 'Helvetica Neue',
+          'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI',
+          'Microsoft YaHei', Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <the-metronome></the-metronome>
+
+    <template id="tpl-metronome">
+      <style>
+        :host {
+          display: flex;
+          box-sizing: border-box;
+          flex-direction: column;
+          justify-content: space-between;
+          align-items: center;
+          height: 100%;
+          padding-bottom: 10px;
+        }
+      </style>
+      <melody-input></melody-input>
+      <melody-indicator aria-hidden="true"></melody-indicator>
+      <counter-input name="BPM" value="4" min="0" max="9"></counter-input>
+      <tempo-input></tempo-input>
+      <play-button></play-button>
+    </template>
+    <script>
+      class Sound {
+        constructor() {
+          this.duration = 0.03
+        }
+        get context() {
+          if (!this._context) {
+            this._context = new (window.AudioContext ||
+              window.webkitAudioContext)()
+          }
+          return this._context
+        }
+        play(time, frequency, ended) {
+          let oscillator = this.context.createOscillator()
+          let gainNode = this.context.createGain()
+          oscillator.type = 'sine'
+          oscillator.frequency.value = frequency
+          oscillator.connect(gainNode)
+          gainNode.connect(this.context.destination)
+          gainNode.gain.setValueAtTime(1, time)
+          oscillator.start(time)
+          gainNode.gain.exponentialRampToValueAtTime(
+            0.001,
+            time + this.duration
+          )
+          oscillator.stop(time + this.duration)
+          oscillator.onended = ended
+        }
+      }
+
+      customElements.define(
+        'the-metronome',
+        class TheMetronome extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-metronome').content.cloneNode(true)
+            )
+            let playBtn = shadow.querySelector('play-button')
+            let indicator = shadow.querySelector('melody-indicator')
+            let melody = shadow.querySelector('melody-input')
+            let tempo = shadow.querySelector('tempo-input')
+            let bpm = shadow.querySelector('counter-input[name=BPM]')
+
+            melody = createInputValue(melody)
+            tempo = createInputValue(tempo, Number)
+            bpm = createInputValue(bpm, Number)
+
+            let sound = new Sound()
+            let rAFId
+            let beatCount = 1
+            let flatfrequency = 600
+            let tapfrequency = 840
+            let sharpfrequency = 2000
+            let frequencies = [sharpfrequency, tapfrequency, flatfrequency]
+            let next = 0
+            let iterate = 0
+
+            playBtn.addEventListener('play', () => {
+              if (playBtn.playing) {
+                sound.context.resume() // for iOS Safari
+                next = sound.context.currentTime
+                run()
+              } else {
+                cancelAnimationFrame(rAFId)
+                beatCount = 1
+              }
+            })
+
+            function run() {
+              if (sound.context.currentTime >= next) {
+                let m = melody.value[iterate]
+                let f =
+                  bpm.value > 0 && beatCount === 1 && iterate === 0
+                    ? sharpfrequency
+                    : iterate === 0
+                    ? tapfrequency
+                    : flatfrequency
+                if (m === '!') {
+                  indicator.active(frequencies.indexOf(f))
+                  sound.play(sound.context.currentTime, f, () => {
+                    indicator.active(-1)
+                  })
+                }
+                next += 60 / tempo.value / melody.value.length
+                if (iterate < melody.value.length - 1) {
+                  iterate++
+                } else {
+                  iterate = 0
+                  if (beatCount < bpm.value) {
+                    beatCount++
+                  } else {
+                    beatCount = 1
+                  }
+                }
+              }
+
+              rAFId = requestAnimationFrame(run)
+            }
+          }
+        }
+      )
+
+      function createInputValue(elm, format) {
+        return {
+          get value() {
+            return format ? format(elm.value) : elm.value
+          },
+        }
+      }
+    </script>
+
+    <template id="tpl-melody">
+      <style>
+        :host {
+          display: block;
+          width: 100%;
+          overflow: hidden;
+          background-color: var(--color-in);
+        }
+        div {
+          width: 100%;
+          max-width: 640px;
+          display: flex;
+          padding-bottom: 20px;
+          margin-left: auto;
+          margin-right: auto;
+          margin-bottom: -20px;
+          overflow-x: auto;
+          white-space: nowrap;
+          position: relative;
+        }
+        button {
+          margin: 0;
+          padding: 0;
+          border: 0 none;
+          background-color: transparent;
+          touch-action: manipulation;
+        }
+        .checked {
+          background-color: var(--color-out);
+        }
+        svg {
+          width: 80px;
+          height: 64px;
+          vertical-align: middle;
+        }
+      </style>
+      <div></div>
+    </template>
+    <script>
+      customElements.define(
+        'melody-input',
+        class MelodyInput extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-melody').content.cloneNode(true)
+            )
+            let div = shadow.querySelector('div')
+            window.addEventListener('load', () => {
+              let svg = document
+                .querySelector('#tpl-svg')
+                .content.querySelectorAll('svg')
+              for (let i = 0; i < svg.length; i++) {
+                let item = svg[i]
+                let button = document.createElement('button')
+                button.setAttribute(
+                  'aria-label',
+                  item.getAttribute('aria-label')
+                )
+                button.setAttribute('data-value', item.id)
+                item.removeAttribute('aria-label')
+                button.appendChild(item)
+                div.appendChild(button)
+                if (i === 0) {
+                  button.classList.add('checked')
+                }
+              }
+            })
+            div.addEventListener('click', (e) => {
+              div.querySelector('.checked').classList.remove('checked')
+              let btn = e.composedPath().find((i) => i.tagName === 'BUTTON')
+              if (btn) {
+                btn.classList.add('checked')
+                this.value = btn.dataset.value
+              }
+            })
+            this.value = '!'
+          }
+        }
+      )
+    </script>
+
+    <template id="tpl-indicator">
+      <style>
+        :host {
+          display: block;
+        }
+        span {
+          display: inline-block;
+          width: 50px;
+          height: 50px;
+          margin: 0 0.5em;
+          border-radius: 50px;
+          background-color: var(--color-in);
+        }
+        span[active] {
+          background-color: var(--color-out);
+          box-shadow: 0px 0px 13px 4px var(--color-out);
+        }
+      </style>
+      <span></span>
+      <span></span>
+      <span></span>
+    </template>
+    <script>
+      customElements.define(
+        'melody-indicator',
+        class MelodyIndicator extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-indicator').content.cloneNode(true)
+            )
+            this.indicators = shadow.querySelectorAll('span')
+          }
+          active(index) {
+            if (this.indicators[this.currentIndex]) {
+              this.indicators[this.currentIndex].removeAttribute('active')
+            }
+            if (this.indicators[index]) {
+              this.indicators[index].setAttribute('active', '')
+            }
+            this.currentIndex = index
+          }
+        }
+      )
+    </script>
+
+    <template id="tpl-counter">
+      <style>
+        :host {
+          display: block;
+        }
+        :host > * {
+          vertical-align: middle;
+        }
+        [name] {
+          text-align: center;
+          text-transform: uppercase;
+        }
+        button {
+          font-size: 18px;
+          padding: 0;
+          border: 15px solid transparent;
+          background-color: transparent;
+          color: var(--color-light);
+          line-height: 1;
+          touch-action: manipulation;
+          box-sizing: content-box;
+          width: 0;
+          height: 0;
+        }
+        button[dec] {
+          border-right-color: var(--color-in);
+          border-right-width: 20px;
+        }
+        button[inc] {
+          border-left-color: var(--color-in);
+          border-left-width: 20px;
+        }
+        span {
+          font-size: 24px;
+          margin: 0 0.7em;
+        }
+      </style>
+      <div name></div>
+      <button dec></button>
+      <span></span>
+      <button inc></button>
+    </template>
+    <script>
+      customElements.define(
+        'counter-input',
+        class CounterInput extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-counter').content.cloneNode(true)
+            )
+            this.span = shadow.querySelector('span')
+            let btnDec = shadow.querySelector('button[dec]')
+            let btnInc = shadow.querySelector('button[inc]')
+            let name = this.getAttribute('name')
+            if (name) {
+              shadow.querySelector('div[name]').textContent = name
+              btnDec.setAttribute('aria-label', `decrease ${name}`)
+              btnInc.setAttribute('aria-label', `increase ${name}`)
+              this.span.setAttribute('aria-label', `current ${name}`)
+            }
+            btnInc.addEventListener('click', () => {
+              this.value++
+            })
+            btnDec.addEventListener('click', () => {
+              this.value--
+            })
+            this.value = Number(this.getAttribute('value')) || 0
+            this._inited = true
+          }
+          get value() {
+            return this._value || 0
+          }
+          set value(v) {
+            let min = this.hasAttribute('min')
+              ? Number(this.getAttribute('min'))
+              : -Infinity
+            let max = this.hasAttribute('max')
+              ? Number(this.getAttribute('max'))
+              : Infinity
+            if (v >= min && v <= max) {
+              let oldVal = this._value
+              this._value = v
+              this.span.textContent = v
+              this.setAttribute('value', v)
+              if (this._inited && oldVal !== v) {
+                this.dispatchEvent(
+                  new CustomEvent('changed', {
+                    detail: this.value,
+                    bubbles: true,
+                  })
+                )
+              }
+            }
+          }
+        }
+      )
+    </script>
+
+    <template id="tpl-tempo">
+      <style>
+        :host {
+          display: block;
+          text-align: center;
+        }
+        counter-input {
+          margin-bottom: 1em;
+        }
+        select {
+          font-size: 18px;
+          background-color: transparent;
+          border: 1px solid var(--color-light);
+          color: var(--color-light);
+          text-align: center;
+          padding: 0.3em 1em 0.3em 0.3em;
+          background-image: linear-gradient(
+            to bottom,
+            var(--color-light),
+            var(--color-light) 2px,
+            transparent 2px,
+            transparent 4px,
+            var(--color-light) 4px,
+            var(--color-light) 6px,
+            transparent 6px,
+            transparent 8px,
+            var(--color-light) 8px
+          );
+          background-repeat: no-repeat;
+          background-size: 8px 10px;
+          background-position: calc(100% - 0.3em) 50%;
+          -webkit-appearance: none;
+          appearance: none;
+        }
+      </style>
+      <counter-input name="tempo" value="60" min="0"></counter-input>
+      <label>
+        <select aria-label="selectable tempo"> </select>
+      </label>
+    </template>
+    <script>
+      // https://en.wikipedia.org/wiki/Tempo
+      let tempoItems = [
+        {
+          name: 'Larghissimo',
+          min: 0,
+          max: 24,
+        },
+        {
+          name: 'Grave',
+          min: 25,
+          max: 45,
+        },
+        {
+          name: 'Largo',
+          min: 40,
+          max: 60,
+        },
+        {
+          name: 'Lento',
+          min: 45,
+          max: 60,
+        },
+        {
+          name: 'Larghetto',
+          min: 60,
+          max: 66,
+        },
+        {
+          name: 'Adagio',
+          min: 66,
+          max: 76,
+        },
+        {
+          name: 'Adagietto',
+          min: 72,
+          max: 76,
+        },
+        {
+          name: 'Andante',
+          min: 76,
+          max: 108,
+        },
+        {
+          name: 'Andantino',
+          min: 80,
+          max: 108,
+        },
+        {
+          name: 'Marcia moderato',
+          min: 83,
+          max: 85,
+        },
+        {
+          name: 'Andante moderato',
+          min: 92,
+          max: 98,
+        },
+        {
+          name: 'Moderato',
+          min: 98,
+          max: 112,
+        },
+        {
+          name: 'Allegretto',
+          min: 102,
+          max: 116,
+        },
+        {
+          name: 'Allegro moderato',
+          min: 116,
+          max: 120,
+        },
+        {
+          name: 'Allegro',
+          min: 120,
+          max: 165,
+        },
+        {
+          name: 'Vivace',
+          min: 156,
+          max: 176,
+        },
+        {
+          name: 'Vivacissimo',
+          min: 172,
+          max: 176,
+        },
+        {
+          name: 'Presto',
+          min: 168,
+          max: 200,
+        },
+        {
+          name: 'Prestissimo',
+          min: 200,
+          max: 300,
+        },
+      ]
+
+      customElements.define(
+        'tempo-input',
+        class TempoInput extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-tempo').content.cloneNode(true)
+            )
+            this.counter = shadow.querySelector('counter-input')
+            this.select = shadow.querySelector('select')
+            for (let i = 0; i < tempoItems.length; i++) {
+              let t = tempoItems[i]
+              let option = document.createElement('option')
+              option.setAttribute('value', `${t.min}-${t.max}`)
+              option.textContent = `${t.name} ${t.min}-${t.max}`
+              this.select.appendChild(option)
+            }
+            this.counter.addEventListener('changed', (e) => {
+              this.value = e.detail
+            })
+            this.select.addEventListener('input', () => {
+              if (this.select.value) {
+                this.value = this.select.value.split('-')[0]
+              }
+            })
+
+            this.select.value = '60-66'
+            this.value = 60
+          }
+          get value() {
+            return this.__value
+          }
+          set value(val) {
+            this.__value = val
+            this.counter.value = val
+            if (this.select.value) {
+              let [min, max] = this.select.value.split('-')
+              if (val < min || val > max) {
+                let newTempo = tempoItems.find(
+                  (t) => val >= t.min && val <= t.max
+                )
+                this.select.value = `${newTempo.min}-${newTempo.max}`
+              }
+            }
+          }
+        }
+      )
+    </script>
+
+    <template id="tpl-playbutton">
+      <style>
+        :host {
+          display: inline-block;
+        }
+        button {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+          font-size: 12px;
+          background-color: var(--color-in);
+          color: var(--color-light);
+          border: 0 none;
+          border-radius: 100%;
+          touch-action: manipulation;
+          background-repeat: no-repeat;
+          overflow: hidden;
+        }
+        button::after {
+          content: '';
+          display: block;
+          width: 5em;
+          height: 5em;
+          background-color: white;
+          transition: clip-path 0.3s ease-out;
+        }
+        button[play]::after {
+          shape-outside: polygon(
+            1.634em 1.5em,
+            1.634em 3.5em,
+            3.366em 2.5em,
+            3.366em 2.5em
+          );
+          clip-path: polygon(
+            1.634em 1.5em,
+            1.634em 3.5em,
+            3.366em 2.5em,
+            3.366em 2.5em
+          );
+        }
+        button[pause]::after {
+          shape-outside: polygon(
+            1.5em 3.5em,
+            3.5em 3.5em,
+            3.5em 1.5em,
+            1.5em 1.5em
+          );
+          clip-path: polygon(
+            1.5em 3.5em,
+            3.5em 3.5em,
+            3.5em 1.5em,
+            1.5em 1.5em
+          );
+        }
+      </style>
+      <button play aria-label="play or pause the metronome"></button>
+    </template>
+    <script>
+      customElements.define(
+        'play-button',
+        class PlayButton extends HTMLElement {
+          constructor() {
+            super()
+            let shadow = this.attachShadow({ mode: 'open' })
+            shadow.appendChild(
+              document.querySelector('#tpl-playbutton').content.cloneNode(true)
+            )
+            let btn = shadow.querySelector('button')
+            this.playing = false
+            btn.addEventListener('click', () => {
+              if (this.playing) {
+                btn.removeAttribute('pause')
+                btn.setAttribute('play', '')
+                this.playing = false
+              } else {
+                btn.removeAttribute('play')
+                btn.setAttribute('pause', '')
+                this.playing = true
+              }
+              this.dispatchEvent(
+                new CustomEvent('play', {
+                  detail: this.playing,
+                  bubbles: true,
+                })
+              )
+            })
+          }
+        }
+      )
+    </script>
+
+    <template id="tpl-svg">
+      <svg
+        id="!"
+        aria-label="quarter note"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <g id="quarter">
+          <ellipse
+            id="d"
+            cx="50"
+            cy="60"
+            rx="8"
+            ry="5"
+            fill="#191919"
+            transform="rotate(-30 50 60)"
+          />
+          <line
+            id="stem"
+            x1="56"
+            y1="56"
+            x2="56"
+            y2="15"
+            stroke="#191919"
+            stroke-width="2"
+          />
+        </g>
+      </svg>
+
+      <svg
+        id="!!"
+        aria-label="double eighth note"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-10" xlink:href="#quarter" />
+        <use x="10" xlink:href="#quarter" />
+        <line
+          x1="46"
+          y1="16"
+          x2="66"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+
+      <svg
+        id="!!!"
+        aria-label="treble eighth note"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-20" xlink:href="#quarter" />
+        <use xlink:href="#quarter" />
+        <use x="20" xlink:href="#quarter" />
+        <line
+          x1="36"
+          y1="16"
+          x2="76"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+
+      <svg
+        id="!|!"
+        aria-label="treble eighth note with Rest between"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-20" xlink:href="#quarter" />
+        <use xlink:href="#stem" />
+        <use x="20" xlink:href="#quarter" />
+        <line
+          x1="36"
+          y1="16"
+          x2="76"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+
+      <svg
+        id="!!!!"
+        aria-label="quadruple sixteenth note"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-30" xlink:href="#quarter" />
+        <use x="-10" xlink:href="#quarter" />
+        <use x="10" xlink:href="#quarter" />
+        <use x="30" xlink:href="#quarter" />
+        <line
+          x1="26"
+          y1="16"
+          x2="86"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+        <line
+          id="stem2"
+          x1="26"
+          y1="20"
+          x2="86"
+          y2="20"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+
+      <svg
+        id="!||!"
+        aria-label="quadruple sixteenth note with two rest between"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-30" xlink:href="#quarter" />
+        <use x="-10" xlink:href="#stem" />
+        <use x="10" xlink:href="#stem" />
+        <use x="30" xlink:href="#quarter" />
+        <line
+          x1="26"
+          y1="16"
+          x2="86"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+        <use xlink:href="#stem2" />
+      </svg>
+
+      <svg
+        id="!!|!"
+        aria-label="double sixteenth with a rest and sixteenth"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-20" xlink:href="#quarter" />
+        <use xlink:href="#quarter" />
+        <use x="20" xlink:href="#quarter" />
+        <line
+          x1="36"
+          y1="16"
+          x2="76"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+        <line
+          x1="36"
+          y1="20"
+          x2="56"
+          y2="20"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+
+      <svg
+        id="!|!!"
+        aria-label="sixteenth with a rest and double sixteenth"
+        version="1.1"
+        viewBox="0 0 100 80"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use x="-20" xlink:href="#quarter" />
+        <use xlink:href="#quarter" />
+        <use x="20" xlink:href="#quarter" />
+        <line
+          x1="36"
+          y1="16"
+          x2="76"
+          y2="16"
+          stroke="#191919"
+          stroke-width="2"
+        />
+        <line
+          x1="56"
+          y1="20"
+          x2="76"
+          y2="20"
+          stroke="#191919"
+          stroke-width="2"
+        />
+      </svg>
+    </template>
+  </body>
+</html>
