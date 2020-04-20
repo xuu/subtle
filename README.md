@@ -1,3 +1,3 @@
-[tetris](https://xuu.github.io/subtle/tetris)
+[Tetris](https://xuu.github.io/subtle/tetris)
 
 [Metronome](https://xuu.github.io/subtle/metronome)
