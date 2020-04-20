@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="Description" content="Swipe Web Component." />
+    <meta name="Author" content="Axu Wei" />
+    <title>Swipe Component</title>
+  </head>
+  <body>
+    <style>
+      :root {
+        --color-1: #db02b3;
+        --color-2: #d023f5;
+        --color-3: #943ff5;
+        --color-4: #5e5bf5;
+        --color-5: #141414;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-size: 12px;
+        font-family: 'SF Pro Text', 'Helvetica Neue', 'Helvetica', 'Arial',
+          sans-serif;
+        color: var(--color-5);
+        background: #d8d8d8;
+      }
+      a {
+        color: var(--color-4);
+      }
+      .layout {
+        width: 100vmin;
+        max-width: 960px;
+        margin: 0 auto;
+        background-color: white;
+      }
+      .item {
+        text-align: center;
+        line-height: 15;
+        color: white;
+      }
+      .item1,
+      .item:nth-of-type(5n - 4) {
+        background-color: var(--color-1);
+      }
+      .item2,
+      .item:nth-of-type(5n - 3) {
+        background-color: var(--color-2);
+      }
+      .item3,
+      .item:nth-of-type(5n - 2) {
+        background-color: var(--color-3);
+      }
+      .item4,
+      .item:nth-of-type(5n - 1) {
+        background-color: var(--color-4);
+      }
+      .item5,
+      .item:nth-of-type(5n) {
+        background-color: var(--color-5);
+      }
+    </style>
+
+    <section class="layout" id="TheSwipe">
+      <style>
+        #demo-4 > div {
+          padding: 20px 10px;
+          text-align: center;
+          line-height: 5;
+          transition: transform 500ms ease-out;
+          color: white;
+        }
+        #demo-4 [data-current] {
+          transform: translateY(-10px);
+        }
+      </style>
+      <the-swipe id="demo-1" autoplay continuous>
+        <div class="item">TheSwipe</div>
+        <div class="item">A Web Component</div>
+        <div class="item">Minimal</div>
+        <div class="item">Elegant</div>
+        <div class="item">Flexible</div>
+      </the-swipe>
+      <the-swipe
+        id="demo-3"
+        current-index="1"
+        delay="4000"
+        duration="200ms"
+        continuous
+      >
+        <div class="item">Autoplay</div>
+        <div class="item">Continuous</div>
+        <div class="item">Duration</div>
+        <div class="item">Delay</div>
+      </the-swipe>
+      <!-- <the-swipe id="demo-2">
+        <div class="item">Just 2 items</div>
+        <div class="item">Can't continuous</div>
+      </the-swipe> -->
+      <the-swipe
+        id="demo-4"
+        margin-left="35%"
+        margin-right="35%"
+        offset-left="2"
+        continuous
+      >
+        <div><div class="item1">Adaptable</div></div>
+        <div><div class="item2">a</div></div>
+        <div><div class="item3">b</div></div>
+        <div><div class="item4">c</div></div>
+        <div><div class="item5">d</div></div>
+      </the-swipe>
+    </section>
+
+    <section class="layout" id="SwipeWithIndicator">
+      <swipe-indicator>
+        <the-swipe continuous>
+          <div class="item">With indicators</div>
+          <div class="item">a</div>
+          <div class="item">b</div>
+          <div class="item">c</div>
+        </the-swipe>
+      </swipe-indicator>
+      <!-- <swipe-indicator>
+        <the-swipe continuous>
+          <div class="item">a</div>
+          <div class="item">b</div>
+        </the-swipe>
+      </swipe-indicator> -->
+      <template id="swipe-indicator-tmpl">
+        <style>
+          :host {
+            box-sizing: border-box;
+            display: block;
+          }
+          .indicator {
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            align-items: center;
+            padding: 0.5em 1em;
+            pointer-events: none;
+          }
+          .indicator span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin: 0 5px;
+            border-radius: 50%;
+            background-color: var(--color-5);
+            opacity: 0.4;
+          }
+          .indicator span.in {
+            background-color: var(--color-1);
+            opacity: 1;
+          }
+        </style>
+      </template>
+    </section>
+
+    <section class="layout" id="SwipeWithArrow">
+      <swipe-arrow>
+        <the-swipe continuous>
+          <div class="item">With arrows</div>
+          <div class="item">a</div>
+          <div class="item">b</div>
+          <div class="item">c</div>
+        </the-swipe>
+      </swipe-arrow>
+      <template id="swipe-arrow-tmpl">
+        <style>
+          :host {
+            box-sizing: border-box;
+            display: block;
+            position: relative;
+          }
+          button {
+            position: absolute;
+            color: transparent;
+            margin: 0;
+            padding: 0;
+            width: 0;
+            height: 0;
+            border: 15px solid transparent;
+            background-color: transparent;
+            top: 50%;
+            transform: translateY(-50%);
+            overflow: hidden;
+          }
+          .prev {
+            left: 0;
+            border-right-color: white;
+          }
+          .next {
+            right: 0;
+            border-left-color: white;
+          }
+        </style>
+        <slot></slot>
+        <button class="prev">prev</button>
+        <button class="next">next</button>
+      </template>
+    </section>
+
+    <section class="layout" id="SwipeFade">
+      <swipe-fade continuous autoplay>
+        <div class="item">SwipeFade</div>
+        <div class="item">a</div>
+        <div class="item">b</div>
+        <div class="item">c</div>
+      </swipe-fade>
+    </section>
+
+    <section class="layout" id="SwipeClip">
+      <style>
+        .swipe-clip figure {
+          width: 100%;
+          height: 0;
+          margin: 0;
+          padding-bottom: 100%;
+          background-size: contain;
+          -moz-user-select: none;
+          -ms-touch-select: none;
+          -webkit-user-select: none;
+          user-select: none;
+        }
+        .fg1 {
+          background-image: url(https://source.unsplash.com/jU9VAZDGMzs/960x960);
+        }
+        .fg2 {
+          background-image: url(https://source.unsplash.com/aK0EmfPuktA/960x960);
+        }
+        .fg3 {
+          background-image: url(https://source.unsplash.com/jTCLppdwSEc/960x960);
+        }
+        .fg4 {
+          background-image: url(https://source.unsplash.com/ZMRMFULofus/960x960);
+        }
+        /* .fg1 {
+          background-image: url('./images/p1.jpeg');
+        }
+        .fg2 {
+          background-image: url('./images/p2.jpeg');
+        }
+        .fg3 {
+          background-image: url('./images/p3.jpeg');
+        }
+        .fg4 {
+          background-image: url('./images/p4.jpeg');
+        } */
+      </style>
+      <template id="figures">
+        <div>
+          <figure class="fg1"></figure>
+        </div>
+        <div>
+          <figure class="fg2"></figure>
+        </div>
+        <div>
+          <figure class="fg3"></figure>
+        </div>
+        <div>
+          <figure class="fg4"></figure>
+        </div>
+      </template>
+
+      <section id="SwipeClip1">
+        <swipe-clip
+          class="swipe-clip item-to-be-appended"
+          autoplay
+        ></swipe-clip>
+      </section>
+
+      <section id="SwipeCircle">
+        <swipe-circle class="swipe-clip item-to-be-appended" autoplay>
+        </swipe-circle>
+      </section>
+    </section>
+
+    <footer class="layout">
+      <style>
+        footer.layout {
+          padding: 2em 1em;
+          text-align: center;
+        }
+        footer.layout span {
+          display: inline-block;
+          font-size: 1px;
+          width: 15px;
+          height: 15px;
+        }
+      </style>
+      <p>
+        <span class="item"></span>
+        <span class="item"></span>
+        <span class="item"></span>
+        <span class="item"></span>
+        <span class="item"></span>
+      </p>
+      <p>Images from <a href="https://unsplash.com/">Unsplash</a></p>
+      <p><a href="https://github.com/xuu/subtle">Code</a></p>
+    </footer>
+
+    <script src="./lib/swipe.js"></script>
+  </body>
+</html>
