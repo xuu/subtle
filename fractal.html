@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="Description" content="Fractal Drawing in WebGL." />
+    <meta name="Author" content="Axu Wei" />
+    <title>Fractal</title>
+    <style>
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        font-family: -apple-system-font, BlinkMacSystemFont, 'Helvetica Neue',
+          'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI',
+          'Microsoft YaHei', Arial, sans-serif;
+        background-color: black;
+      }
+      main {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+      canvas {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      select[name='features'] {
+        --s-color: rgba(255, 255, 255, 0.8);
+        position: fixed;
+        top: 6px;
+        right: 6px;
+        z-index: 99;
+        display: inline-block;
+        width: 25px;
+        height: 25px;
+        border: 1px solid var(--s-color);
+        border-radius: 50%;
+        color: transparent;
+        font-size: 16px;
+        background-color: transparent;
+        -webkit-appearance: none;
+        appearance: none;
+        outline: none;
+        background-image: linear-gradient(
+            to right,
+            var(--s-color) 1px,
+            transparent 0
+          ),
+          linear-gradient(to bottom, var(--s-color) 1px, transparent 0);
+        background-position: 50% 50%, 50% 50%;
+        background-size: 1px 60%, 60% 1px;
+        background-repeat: no-repeat;
+      }
+      select[name='features']:focus {
+        --s-color: aqua;
+      }
+      #c {
+        position: fixed;
+        left: 6px;
+        bottom: 6px;
+        z-index: 99;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <canvas></canvas>
+      <select name="features" value="-0.4,0.6">
+        <optgroup label="Featured Complex Parameters">
+          <option value="-0.4,0.6">c=-0.4+0.6i</option>
+          <option value="0.285,0">c=0.285</option>
+          <option value="0.61803,0">c=0.61803</option>
+          <option value="-0.70176,-0.3842">c=-0.70176-0.3842i</option>
+          <option value="0.285,0.01">c=0.285+0.01i</option>
+          <option value="0.45,0.1428">c=0.45+0.1428i</option>
+          <option value="-0.835,-0.2321">c=-0.835-0.2321i</option>
+          <option value="-0.8,0.156">c=-0.8+0.156i</option>
+          <option value="-0.05266,-0.6728167">c=-0.05266-0.6728167i</option>
+          <option value="0,-0.8">c=-0.8i</option>
+          <option value="0,0">c=0</option>
+        </optgroup>
+        <optgroup label="Animated Complex Parameters">
+          <option value="a1">
+            c=0.7885e to the power i * a, a from 0 to 2 * PI
+          </option>
+        </optgroup>
+      </select>
+      <div id="c"></div>
+    </main>
+    <script src="./lib/webglkit.js"></script>
+    <script>
+      // https://en.wikipedia.org/wiki/Julia_set
+
+      let selector = document.querySelector('select[name=features]')
+      let divc = document.querySelector('#c')
+      let canvas = document.querySelector('canvas')
+
+      canvas.width = canvas.height = Math.min(
+        Math.max(window.innerWidth, window.innerHeight),
+        1000
+      )
+
+      let gl = canvas.getContext('webgl')
+      let vs = `
+        attribute float vertexId;
+        uniform vec2 cParam;
+        uniform vec2 resolution;
+        uniform vec2 translation;
+        uniform float scale;
+        varying vec4 color;
+
+        #define MAX_ITER 50
+
+        vec2 complexMul(vec2 v1, vec2 v2) {
+          return vec2(v1.x * v2.x - v1.y * v2.y, v1.x * v2.y + v1.y * v2.x);
+        }
+
+        float iterate(vec2 z) {
+          float depth = 0.0;
+          vec2 zn = z;
+
+          for (int i = 0; i < MAX_ITER; i++) {
+            depth = depth + 1.0;
+            zn = complexMul(zn, zn) + cParam;
+            if ((pow(zn.x, 2.0) + pow(zn.y, 2.0)) >= 4.0) {
+              break;
+            }
+          }
+
+          return depth;
+        }
+
+        float refine(float p, float depth) {
+          return min(1.0, abs(p)) * min(1.0, (depth + 0.3));
+        }
+
+        void main() {
+          // pixel
+          float py = floor(vertexId / resolution.x);
+          float px = vertexId - py * resolution.x;
+
+          // clip space
+          vec2 clipPos = (vec2(px, py) / resolution * 2.0 - 1.0) * vec2(1, -1);
+          gl_Position = vec4(clipPos, 0, 1);
+          gl_PointSize = 2.0;
+
+          // fractal space
+          vec2 pos = vec2(px, py) / resolution * 4.0 - 2.0;
+          vec2 ft = translation / resolution * 2.0;
+          vec2 zn = (pos + ft) * scale;
+          float depth = iterate(zn);
+          depth = depth / float(MAX_ITER);
+
+          // float r = depth;
+          // float g = depth * 0.8;
+          // float b = depth * 0.5;
+
+          float r = depth;
+          float g = refine(cParam.x, depth);
+          float b = refine(cParam.y, depth);
+
+          color = vec4(r, g, b, 1);
+          // color = depth == 1.0 ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
+        }`
+      let fs = `
+        precision mediump float;
+        varying vec4 color;
+
+        void main() {
+          gl_FragColor = color;
+        }`
+
+      let cParam = [-0.4, 0.6]
+      let translation = [0.0, 0.0]
+      let scale = 1.0
+      let rAFId = 0
+      let animateTiming = 0
+      let animated1a = 0
+
+      let program = initShaderProgram(gl, vs, fs)
+      let vertexIdLoc = gl.getAttribLocation(program, 'vertexId')
+      let parameterLoc = gl.getUniformLocation(program, 'cParam')
+      let resolutionLoc = gl.getUniformLocation(program, 'resolution')
+      let translationLoc = gl.getUniformLocation(program, 'translation')
+      let scaleLoc = gl.getUniformLocation(program, 'scale')
+
+      let numVerts = canvas.width * canvas.height
+      let vertexIds = new Float32Array(numVerts)
+      vertexIds.forEach((v, i) => {
+        vertexIds[i] = i
+      })
+
+      let idBuffer = gl.createBuffer()
+      gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer)
+      gl.bufferData(gl.ARRAY_BUFFER, vertexIds, gl.STATIC_DRAW)
+
+      setup()
+      draw()
+
+      function updateCParam() {
+        divc.textContent = `c=${cParam[0]}${cParam[1] < 0 ? '' : '+'}${
+          cParam[1]
+        }i`
+      }
+
+      function draw() {
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+        // gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
+        gl.clearColor(0.0, 0.0, 0.0, 1.0)
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+        gl.useProgram(program)
+
+        {
+          gl.enableVertexAttribArray(vertexIdLoc)
+          gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer)
+
+          let size = 1
+          let type = gl.FLOAT
+          let normalize = false
+          let stride = 0
+          let offset = 0
+          gl.vertexAttribPointer(
+            vertexIdLoc,
+            size,
+            type,
+            normalize,
+            stride,
+            offset
+          )
+        }
+
+        gl.uniform2f(parameterLoc, ...cParam)
+        gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height)
+        gl.uniform2f(translationLoc, ...translation)
+        gl.uniform1f(scaleLoc, scale)
+
+        {
+          let type = gl.POINTS
+          let offset = 0
+          gl.drawArrays(type, offset, numVerts)
+        }
+      }
+
+      function setup() {
+        let x0 = 0
+        let y0 = 0
+        let numTouchs = 0
+        canvas.addEventListener('touchstart', (e) => {
+          let {
+            touches,
+            touches: [t1, t2],
+          } = e
+          x0 = t1.clientX
+          y0 = t1.clientY
+          numTouchs = touches.length
+        })
+        canvas.addEventListener('touchmove', (e) => {
+          e.preventDefault()
+          if (rAFId) {
+            return
+          }
+          let {
+            touches,
+            touches: [t1, t2],
+          } = e
+          if (numTouchs === 3) {
+            scale += t1.clientY > y0 ? -0.01 : 0.01
+            scale = Math.max(0.01, scale)
+          }
+          if (numTouchs === 2) {
+            let maxX = canvas.width * 3
+            let maxY = canvas.height * 3
+            let x = translation[0] + x0 - t1.clientX
+            let y = translation[1] + y0 - t1.clientY
+            translation[0] = clampNum(x, -maxX, maxX)
+            translation[1] = clampNum(y, -maxY, maxY)
+            // selector.value = ''
+          }
+          if (numTouchs === 1) {
+            let max = 3
+            cParam[0] += ((t1.clientX - x0) / canvas.width) * 1.0
+            cParam[1] += ((t1.clientY - y0) / canvas.height) * 1.0
+            cParam[0] = clampNum(cParam[0], -max, max)
+            cParam[1] = clampNum(cParam[1], -max, max)
+            updateCParam()
+          }
+          x0 = t1.clientX
+          y0 = t1.clientY
+          draw()
+        })
+
+        selector.addEventListener('input', ({ target: { value } }) => {
+          if (value === 'a1') {
+            animated1(performance.now())
+            return
+          } else {
+            cancelAnimationFrame(rAFId)
+            rAFId = null
+          }
+          if (value) {
+            cParam = value.split(',').map((n) => parseFloat(n))
+            updateCParam()
+            draw()
+          }
+        })
+      }
+
+      // https://en.wikipedia.org/wiki/Julia_set#/media/File:JSr07885.gif
+      function animated1(time) {
+        let r = 0.7885
+        rAFId = requestAnimationFrame(animated1)
+        if (time - animateTiming > 1) {
+          animated1a += 0.01
+          animated1a = animated1a > 2 * Math.PI ? 0 : animated1a
+          cParam = [r * Math.cos(animated1a), r * Math.sin(animated1a)]
+          updateCParam()
+          draw()
+        }
+      }
+
+      function clampNum(x, min, max) {
+        return Math.max(min, Math.min(max, x))
+      }
+
+      // function touchDistance(t1, t2) {
+      //   return Math.sqrt(
+      //     (t1.clientX - t2.clientX) ** 2 + (t1.clientY - t2.clientY) ** 2
+      //   )
+      // }
+    </script>
+  </body>
+</html>
