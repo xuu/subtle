@@ -128,9 +128,9 @@
           return vec2(v1.x * v2.x - v1.y * v2.y, v1.x * v2.y + v1.y * v2.x);
         }
 
-        float iterate(vec2 z) {
+        float iterate(vec2 pos) {
           float depth = 0.0;
-          vec2 zn = z;
+          vec2 zn = pos;
 
           for (int i = 0; i < MAX_ITER; i++) {
             depth = depth + 1.0;
@@ -159,9 +159,8 @@
 
           // fractal space
           vec2 pos = vec2(px, py) / resolution * 4.0 - 2.0;
-          vec2 ft = translation / resolution * 2.0;
-          vec2 zn = (pos + ft) * scale;
-          float depth = iterate(zn);
+          pos = pos / scale + translation / resolution;
+          float depth = iterate(pos);
           depth = depth / float(MAX_ITER);
 
           // float r = depth;
@@ -210,7 +209,8 @@
       setup()
       draw()
 
-      function updateCParam() {
+      function updateDivc() {
+        // divc.textContent = `${JSON.stringify(translation)}, ${scale}`
         divc.textContent = `c=${cParam[0]}${cParam[1] < 0 ? '' : '+'}${
           cParam[1]
         }i`
@@ -276,8 +276,8 @@
             touches: [t1, t2],
           } = e
           if (numTouchs === 3) {
-            scale += t1.clientY > y0 ? -0.01 : 0.01
-            scale = Math.max(0.01, scale)
+            scale += t1.clientY > y0 ? -0.1 : 0.1
+            scale = Math.max(0.05, scale)
           }
           if (numTouchs === 2) {
             let maxX = canvas.width * 3
@@ -294,7 +294,7 @@
             cParam[1] += ((t1.clientY - y0) / canvas.height) * 1.0
             cParam[0] = clampNum(cParam[0], -max, max)
             cParam[1] = clampNum(cParam[1], -max, max)
-            updateCParam()
+            updateDivc()
           }
           x0 = t1.clientX
           y0 = t1.clientY
@@ -311,7 +311,7 @@
           }
           if (value) {
             cParam = value.split(',').map((n) => parseFloat(n))
-            updateCParam()
+            updateDivc()
             draw()
           }
         })
@@ -325,7 +325,7 @@
           animated1a += 0.01
           animated1a = animated1a > 2 * Math.PI ? 0 : animated1a
           cParam = [r * Math.cos(animated1a), r * Math.sin(animated1a)]
-          updateCParam()
+          updateDivc()
           draw()
         }
       }
