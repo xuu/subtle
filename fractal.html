@@ -114,13 +114,20 @@
       )
 
       let gl = canvas.getContext('webgl')
+
       let vs = `
-        attribute float vertexId;
-        uniform vec2 cParam;
+        attribute vec4 position;
+
+        void main() {
+          gl_Position = position;
+        }`
+
+      let fs = `
+        precision mediump float;
         uniform vec2 resolution;
+        uniform vec2 cParam;
         uniform vec2 translation;
         uniform float scale;
-        varying vec4 color;
 
         #define MAX_ITER 50
 
@@ -148,17 +155,10 @@
         }
 
         void main() {
-          // pixel
-          float py = floor(vertexId / resolution.x);
-          float px = vertexId - py * resolution.x;
-
-          // clip space
-          vec2 clipPos = (vec2(px, py) / resolution * 2.0 - 1.0) * vec2(1, -1);
-          gl_Position = vec4(clipPos, 0, 1);
-          gl_PointSize = 2.0;
+          vec2 xy = gl_FragCoord.xy / resolution;
 
           // fractal space
-          vec2 pos = vec2(px, py) / resolution * 4.0 - 2.0;
+          vec2 pos = xy * 4.0 - 2.0;
           pos = pos / scale + translation / resolution;
           float depth = iterate(pos);
           depth = depth / float(MAX_ITER);
@@ -170,16 +170,8 @@
           float r = depth;
           float g = refine(cParam.x, depth);
           float b = refine(cParam.y, depth);
-
-          color = vec4(r, g, b, 1);
-          // color = depth == 1.0 ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
-        }`
-      let fs = `
-        precision mediump float;
-        varying vec4 color;
-
-        void main() {
-          gl_FragColor = color;
+          // gl_FragColor = depth == 1.0 ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
+          gl_FragColor = vec4(r, g, b, 1);
         }`
 
       let cParam = [-0.4, 0.6]
@@ -190,21 +182,19 @@
       let animated1a = 0
 
       let program = initShaderProgram(gl, vs, fs)
-      let vertexIdLoc = gl.getAttribLocation(program, 'vertexId')
+      let positionLoc = gl.getAttribLocation(program, 'position')
       let parameterLoc = gl.getUniformLocation(program, 'cParam')
       let resolutionLoc = gl.getUniformLocation(program, 'resolution')
       let translationLoc = gl.getUniformLocation(program, 'translation')
       let scaleLoc = gl.getUniformLocation(program, 'scale')
 
-      let numVerts = canvas.width * canvas.height
-      let vertexIds = new Float32Array(numVerts)
-      vertexIds.forEach((v, i) => {
-        vertexIds[i] = i
-      })
-
-      let idBuffer = gl.createBuffer()
-      gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer)
-      gl.bufferData(gl.ARRAY_BUFFER, vertexIds, gl.STATIC_DRAW)
+      let positionBuffer = gl.createBuffer()
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+        gl.STATIC_DRAW
+      )
 
       setup()
       draw()
@@ -223,16 +213,16 @@
         gl.useProgram(program)
 
         {
-          gl.enableVertexAttribArray(vertexIdLoc)
-          gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer)
+          gl.enableVertexAttribArray(positionLoc)
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
 
-          let size = 1
+          let size = 2
           let type = gl.FLOAT
           let normalize = false
           let stride = 0
           let offset = 0
           gl.vertexAttribPointer(
-            vertexIdLoc,
+            positionLoc,
             size,
             type,
             normalize,
@@ -247,9 +237,10 @@
         gl.uniform1f(scaleLoc, scale)
 
         {
-          let type = gl.POINTS
+          let type = gl.TRIANGLES
           let offset = 0
-          gl.drawArrays(type, offset, numVerts)
+          let count = 6
+          gl.drawArrays(type, offset, count)
         }
       }
 
@@ -283,10 +274,9 @@
             let maxX = canvas.width * 3
             let maxY = canvas.height * 3
             let x = translation[0] + x0 - t1.clientX
-            let y = translation[1] + y0 - t1.clientY
+            let y = translation[1] - y0 + t1.clientY
             translation[0] = clampNum(x, -maxX, maxX)
             translation[1] = clampNum(y, -maxY, maxY)
-            // selector.value = ''
           }
           if (numTouchs === 1) {
             let max = 3
