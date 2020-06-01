@@ -101,150 +101,96 @@
       <div id="c"></div>
     </main>
     <script src="./lib/webglkit.js"></script>
-    <script>
+    <script id="frag" type="x-shader/x-fragment">
       // https://en.wikipedia.org/wiki/Julia_set
 
+      precision mediump float;
+
+      uniform vec2 resolution;
+      uniform vec2 cParam;
+      uniform vec2 translation;
+      uniform float scale;
+
+      #define MAX_ITER 50
+
+      vec2 complexMul(vec2 v1, vec2 v2) {
+        return vec2(v1.x * v2.x - v1.y * v2.y, v1.x * v2.y + v1.y * v2.x);
+      }
+
+      float iterate(vec2 pos) {
+        float depth = 0.0;
+        vec2 zn = pos;
+
+        for (int i = 0; i < MAX_ITER; i++) {
+          depth = depth + 1.0;
+          zn = complexMul(zn, zn) + cParam;
+          if ((pow(zn.x, 2.0) + pow(zn.y, 2.0)) >= 4.0) {
+            break;
+          }
+        }
+
+        return depth;
+      }
+
+      float refine(float p, float depth) {
+        return min(1.0, abs(p)) * min(1.0, (depth + 0.3));
+      }
+
+      void main() {
+        vec2 xy = gl_FragCoord.xy / resolution;
+        // fractal space
+        vec2 pos = xy * 4.0 - 2.0;
+        pos = pos / scale + translation / resolution;
+        float depth = iterate(pos);
+        depth = depth / float(MAX_ITER);
+
+        // float r = depth;
+        // float g = depth * 0.8;
+        // float b = depth * 0.5;
+
+        float r = depth;
+        float g = refine(cParam.x, depth);
+        float b = refine(cParam.y, depth);
+        gl_FragColor = vec4(r, g, b, 1);
+      }
+    </script>
+    <script>
       let selector = document.querySelector('select[name=features]')
       let divc = document.querySelector('#c')
       let canvas = document.querySelector('canvas')
-
-      canvas.width = canvas.height = Math.min(
-        Math.max(window.innerWidth, window.innerHeight),
-        1000
-      )
-
       let gl = canvas.getContext('webgl')
-
-      let vs = `
-        attribute vec4 position;
-
-        void main() {
-          gl_Position = position;
-        }`
-
-      let fs = `
-        precision mediump float;
-        uniform vec2 resolution;
-        uniform vec2 cParam;
-        uniform vec2 translation;
-        uniform float scale;
-
-        #define MAX_ITER 50
-
-        vec2 complexMul(vec2 v1, vec2 v2) {
-          return vec2(v1.x * v2.x - v1.y * v2.y, v1.x * v2.y + v1.y * v2.x);
-        }
-
-        float iterate(vec2 pos) {
-          float depth = 0.0;
-          vec2 zn = pos;
-
-          for (int i = 0; i < MAX_ITER; i++) {
-            depth = depth + 1.0;
-            zn = complexMul(zn, zn) + cParam;
-            if ((pow(zn.x, 2.0) + pow(zn.y, 2.0)) >= 4.0) {
-              break;
-            }
-          }
-
-          return depth;
-        }
-
-        float refine(float p, float depth) {
-          return min(1.0, abs(p)) * min(1.0, (depth + 0.3));
-        }
-
-        void main() {
-          vec2 xy = gl_FragCoord.xy / resolution;
-
-          // fractal space
-          vec2 pos = xy * 4.0 - 2.0;
-          pos = pos / scale + translation / resolution;
-          float depth = iterate(pos);
-          depth = depth / float(MAX_ITER);
-
-          // float r = depth;
-          // float g = depth * 0.8;
-          // float b = depth * 0.5;
-
-          float r = depth;
-          float g = refine(cParam.x, depth);
-          float b = refine(cParam.y, depth);
-          // gl_FragColor = depth == 1.0 ? vec4(1, 1, 1, 1) : vec4(0, 0, 0, 1);
-          gl_FragColor = vec4(r, g, b, 1);
-        }`
-
-      let cParam = [-0.4, 0.6]
-      let translation = [0.0, 0.0]
-      let scale = 1.0
-      let rAFId = 0
-      let animateTiming = 0
-      let animated1a = 0
-
-      let program = initShaderProgram(gl, vs, fs)
+      let fs = document.querySelector('#frag').textContent
+      let { program, render } = fragShader(gl, fs)
       let positionLoc = gl.getAttribLocation(program, 'position')
       let parameterLoc = gl.getUniformLocation(program, 'cParam')
       let resolutionLoc = gl.getUniformLocation(program, 'resolution')
       let translationLoc = gl.getUniformLocation(program, 'translation')
       let scaleLoc = gl.getUniformLocation(program, 'scale')
 
-      let positionBuffer = gl.createBuffer()
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-        gl.STATIC_DRAW
-      )
+      let cParam = [-0.4, 0.6]
+      let translation = [0.0, 0.0]
+      let scale = 1.0
+      let rAFId = 0
+      let animated1a = 0
 
       setup()
       draw()
 
-      function updateDivc() {
-        // divc.textContent = `${JSON.stringify(translation)}, ${scale}`
-        divc.textContent = `c=${cParam[0]}${cParam[1] < 0 ? '' : '+'}${
-          cParam[1]
-        }i`
-      }
-
       function draw() {
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-        gl.clearColor(0.0, 0.0, 0.0, 1.0)
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
         gl.useProgram(program)
-
-        {
-          gl.enableVertexAttribArray(positionLoc)
-          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-
-          let size = 2
-          let type = gl.FLOAT
-          let normalize = false
-          let stride = 0
-          let offset = 0
-          gl.vertexAttribPointer(
-            positionLoc,
-            size,
-            type,
-            normalize,
-            stride,
-            offset
-          )
-        }
-
         gl.uniform2f(parameterLoc, ...cParam)
         gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height)
         gl.uniform2f(translationLoc, ...translation)
         gl.uniform1f(scaleLoc, scale)
-
-        {
-          let type = gl.TRIANGLES
-          let offset = 0
-          let count = 6
-          gl.drawArrays(type, offset, count)
-        }
+        render()
       }
 
       function setup() {
+        canvas.width = canvas.height = Math.min(
+          Math.max(window.innerWidth, window.innerHeight),
+          1000
+        )
+
         let x0 = 0
         let y0 = 0
         let numTouchs = 0
@@ -268,7 +214,7 @@
           } = e
           if (numTouchs === 3) {
             scale += t1.clientY > y0 ? -0.1 : 0.1
-            scale = Math.max(0.05, scale)
+            scale = clampNum(scale, 0.05, 20)
           }
           if (numTouchs === 2) {
             let maxX = canvas.width * 3
@@ -307,17 +253,21 @@
         })
       }
 
+      function updateDivc() {
+        divc.textContent = `c=${cParam[0]}${cParam[1] < 0 ? '' : '+'}${
+          cParam[1]
+        }i`
+      }
+
       // https://en.wikipedia.org/wiki/Julia_set#/media/File:JSr07885.gif
       function animated1(time) {
         let r = 0.7885
         rAFId = requestAnimationFrame(animated1)
-        if (time - animateTiming > 1) {
-          animated1a += 0.01
-          animated1a = animated1a > 2 * Math.PI ? 0 : animated1a
-          cParam = [r * Math.cos(animated1a), r * Math.sin(animated1a)]
-          updateDivc()
-          draw()
-        }
+        animated1a += 0.01
+        animated1a = animated1a > 2 * Math.PI ? 0 : animated1a
+        cParam = [r * Math.cos(animated1a), r * Math.sin(animated1a)]
+        updateDivc()
+        draw()
       }
 
       function clampNum(x, min, max) {
