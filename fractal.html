@@ -103,13 +103,11 @@
     <script src="./lib/webglkit.js"></script>
     <script id="frag" type="x-shader/x-fragment">
       // https://en.wikipedia.org/wiki/Julia_set
-
-      precision mediump float;
+      precision highp float;
 
       uniform vec2 resolution;
       uniform vec2 cParam;
-      uniform vec2 translation;
-      uniform float scale;
+      uniform vec4 range;
 
       #define MAX_ITER 50
 
@@ -137,10 +135,10 @@
       }
 
       void main() {
-        vec2 xy = gl_FragCoord.xy / resolution;
-        // fractal space
-        vec2 pos = xy * 4.0 - 2.0;
-        pos = pos / scale + translation / resolution;
+        vec2 pos = vec2(
+          gl_FragCoord.x * (range.y - range.x) / resolution.x + range.x,
+          gl_FragCoord.y * (range.w - range.z) / resolution.y + range.z
+        );
         float depth = iterate(pos);
         depth = depth / float(MAX_ITER);
 
@@ -155,47 +153,87 @@
       }
     </script>
     <script>
-      let selector = document.querySelector('select[name=features]')
-      let divc = document.querySelector('#c')
-      let canvas = document.querySelector('canvas')
-      let gl = canvas.getContext('webgl')
-      let fs = document.querySelector('#frag').textContent
-      let { program, render } = fragShader(gl, fs)
-      let positionLoc = gl.getAttribLocation(program, 'position')
-      let parameterLoc = gl.getUniformLocation(program, 'cParam')
-      let resolutionLoc = gl.getUniformLocation(program, 'resolution')
-      let translationLoc = gl.getUniformLocation(program, 'translation')
-      let scaleLoc = gl.getUniformLocation(program, 'scale')
+      const selector = document.querySelector('select[name=features]')
+      const divc = document.querySelector('#c')
+      const canvas = document.querySelector('canvas')
+      const gl = canvas.getContext('webgl')
+      const fs = document.querySelector('#frag').textContent
+      const { program, render } = fragShader(gl, fs)
 
-      let cParam = [-0.4, 0.6]
-      let translation = [0.0, 0.0]
-      let scale = 1.0
-      let rAFId = 0
-      let animated1a = 0
+      const locations = {
+        parameter: gl.getUniformLocation(program, 'cParam'),
+        range: gl.getUniformLocation(program, 'range'),
+        resolution: gl.getUniformLocation(program, 'resolution'),
+      }
+
+      const ratio = window.innerHeight / window.innerWidth
+      const init = 2
+      const data = {
+        minR: -init,
+        maxR: init,
+        minI: -init * ratio,
+        maxI: init * ratio,
+        cParamR: -0.4,
+        cParamI: 0.6,
+      }
+
+      const refs = {
+        rAFId: 0,
+        angle: 0,
+      }
 
       setup()
       draw()
 
       function draw() {
         gl.useProgram(program)
-        gl.uniform2f(parameterLoc, ...cParam)
-        gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height)
-        gl.uniform2f(translationLoc, ...translation)
-        gl.uniform1f(scaleLoc, scale)
+        gl.uniform4f(
+          locations.range,
+          data.maxR,
+          data.minR,
+          data.maxI,
+          data.minI
+        )
+        gl.uniform2f(locations.parameter, data.cParamR, data.cParamI)
+        gl.uniform2f(locations.resolution, gl.canvas.width, gl.canvas.height)
         render()
       }
 
-      function setup() {
-        canvas.width = canvas.height = Math.min(
-          Math.max(window.innerWidth, window.innerHeight),
-          1000
-        )
+      function zoom(delta) {
+        data.minR *= delta
+        data.maxR *= delta
+        data.minI *= delta
+        data.maxI *= delta
+      }
 
+      function move(dx, dy) {
+        const zd = Math.abs(data.maxR / init) * 1.8
+        dx = (dx / window.innerWidth) * 4 * zd
+        dy = (dy / window.innerHeight) * 4 * zd
+        data.minR += dx
+        data.maxR += dx
+        data.minI += dy
+        data.maxI += dy
+      }
+
+      function cParamUpdate(dx, dy) {
+        const max = 3
+        data.cParamR += (dx / canvas.width) * 1.0
+        data.cParamI += (dy / canvas.height) * 1.0
+        data.cParamR = clampNum(data.cParamR, -max, max)
+        data.cParamI = clampNum(data.cParamI, -max, max)
+      }
+
+      function setup() {
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+
+        // touch event for touch screen
         let x0 = 0
         let y0 = 0
         let numTouchs = 0
-        canvas.addEventListener('touchstart', (e) => {
-          let {
+        window.addEventListener('touchstart', (e) => {
+          const {
             touches,
             touches: [t1, t2],
           } = e
@@ -203,50 +241,74 @@
           y0 = t1.clientY
           numTouchs = touches.length
         })
-        canvas.addEventListener('touchmove', (e) => {
-          e.preventDefault()
-          if (rAFId) {
-            return
+        window.addEventListener(
+          'touchmove',
+          (e) => {
+            e.preventDefault()
+            if (refs.rAFId) {
+              return
+            }
+            const {
+              touches,
+              touches: [t1, t2],
+            } = e
+            if (numTouchs === 3) {
+              zoom(t1.clientY > y0 ? 0.99 : 1.01)
+            }
+            if (numTouchs === 2) {
+              move(t1.clientX - x0, y0 - t1.clientY)
+            }
+            if (numTouchs === 1) {
+              cParamUpdate(t1.clientX - x0, t1.clientY - y0)
+              updateDivc()
+            }
+            x0 = t1.clientX
+            y0 = t1.clientY
+            draw()
+          },
+          { passive: false }
+        )
+
+        // wheel & mousemove envent for mouse
+        window.addEventListener(
+          'wheel',
+          (e) => {
+            e.preventDefault()
+            zoom(e.deltaY < 0 ? 0.99 : 1.01)
+            draw()
+          },
+          {
+            passive: false,
           }
-          let {
-            touches,
-            touches: [t1, t2],
-          } = e
-          if (numTouchs === 3) {
-            scale += t1.clientY > y0 ? -0.1 : 0.1
-            scale = clampNum(scale, 0.05, 20)
-          }
-          if (numTouchs === 2) {
-            let maxX = canvas.width * 3
-            let maxY = canvas.height * 3
-            let x = translation[0] + x0 - t1.clientX
-            let y = translation[1] - y0 + t1.clientY
-            translation[0] = clampNum(x, -maxX, maxX)
-            translation[1] = clampNum(y, -maxY, maxY)
-          }
-          if (numTouchs === 1) {
-            let max = 3
-            cParam[0] += ((t1.clientX - x0) / canvas.width) * 1.0
-            cParam[1] += ((t1.clientY - y0) / canvas.height) * 1.0
-            cParam[0] = clampNum(cParam[0], -max, max)
-            cParam[1] = clampNum(cParam[1], -max, max)
-            updateDivc()
-          }
-          x0 = t1.clientX
-          y0 = t1.clientY
-          draw()
-        })
+        )
+        window.addEventListener(
+          'mousemove',
+          (e) => {
+            if (e.buttons === 1) {
+              if (e.shiftKey) {
+                move(e.movementX, -e.movementY)
+              } else {
+                cParamUpdate(e.movementX, e.movementY)
+                updateDivc()
+              }
+              draw()
+            }
+          },
+          false
+        )
 
         selector.addEventListener('input', ({ target: { value } }) => {
           if (value === 'a1') {
-            animated1(performance.now())
+            animated1()
             return
           } else {
-            cancelAnimationFrame(rAFId)
-            rAFId = null
+            cancelAnimationFrame(refs.rAFId)
+            refs.rAFId = null
           }
           if (value) {
-            cParam = value.split(',').map((n) => parseFloat(n))
+            ;[data.cParamR, data.cParamI] = value
+              .split(',')
+              .map((n) => parseFloat(n))
             updateDivc()
             draw()
           }
@@ -254,31 +316,26 @@
       }
 
       function updateDivc() {
-        divc.textContent = `c=${cParam[0]}${cParam[1] < 0 ? '' : '+'}${
-          cParam[1]
+        divc.textContent = `c=${data.cParamR}${data.cParamI < 0 ? '' : '+'}${
+          data.cParamI
         }i`
       }
 
       // https://en.wikipedia.org/wiki/Julia_set#/media/File:JSr07885.gif
-      function animated1(time) {
-        let r = 0.7885
-        rAFId = requestAnimationFrame(animated1)
-        animated1a += 0.01
-        animated1a = animated1a > 2 * Math.PI ? 0 : animated1a
-        cParam = [r * Math.cos(animated1a), r * Math.sin(animated1a)]
+      function animated1() {
+        refs.angle += 0.01
+        refs.angle = refs.angle > 2 * Math.PI ? 0 : refs.angle
+        // refs.angle = (performance.now() / 1000 / 8) * 2 * Math.PI
+        data.cParamR = 0.7885 * Math.cos(refs.angle)
+        data.cParamI = 0.7885 * Math.sin(refs.angle)
         updateDivc()
         draw()
+        refs.rAFId = requestAnimationFrame(animated1)
       }
 
       function clampNum(x, min, max) {
         return Math.max(min, Math.min(max, x))
       }
-
-      // function touchDistance(t1, t2) {
-      //   return Math.sqrt(
-      //     (t1.clientX - t2.clientX) ** 2 + (t1.clientY - t2.clientY) ** 2
-      //   )
-      // }
     </script>
   </body>
 </html>

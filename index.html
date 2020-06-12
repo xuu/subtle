@@ -47,26 +47,26 @@
     </div>
     <script>
       window.addEventListener('DOMContentLoaded', function () {
-        // let width = Math.min(window.innerWidth, 1024)
-        let width = Math.min(window.innerWidth, 600)
-        let r0 = (1 / 20) * width
-        let r1 = 6 * r0
-        let x1 = width / 2
-        let y1 = width - 2 * r0 - r1
-        let r2 = (2 / 3) * r1
-        let x2 = x1 + r1 / 3
-        let y2 = 2 * r0 + r2
-        let r3 = r2 / 10
-        let x3 = x2 + r2
-        let y3 = y2
+        // const width = Math.min(window.innerWidth, 1024)
+        const width = Math.min(window.innerWidth, 600)
+        const r0 = (1 / 20) * width
+        const r1 = 6 * r0
+        const x1 = width / 2
+        const y1 = width - 2 * r0 - r1
+        const r2 = (2 / 3) * r1
+        const x2 = x1 + r1 / 3
+        const y2 = 2 * r0 + r2
+        const r3 = r2 / 10
+        const x3 = x2 + r2
+        const y3 = y2
 
-        let colors = Array.from(
+        const colors = Array.from(
           document.querySelectorAll('.colors span'),
           (node) => node.style.backgroundColor
         )
-        let canvas = document.getElementById('canvas')
-        let ctx = canvas.getContext('2d')
-        let loop = [circleToggle, circleToggle, withGuideLine, main]
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        const loop = [circleToggle, circleToggle, withGuideLine, main]
 
         let index = 0
         canvas.addEventListener('click', () => {
@@ -97,7 +97,7 @@
         }
 
         function guideLine() {
-          let margin = 2 * r0
+          const margin = 2 * r0
           // top
           glStrole(0, margin, width, margin)
           // right

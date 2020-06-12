@@ -64,8 +64,8 @@
           return this._context
         }
         play(time, frequency, ended) {
-          let oscillator = this.context.createOscillator()
-          let gainNode = this.context.createGain()
+          const oscillator = this.context.createOscillator()
+          const gainNode = this.context.createGain()
           oscillator.type = 'sine'
           oscillator.frequency.value = frequency
           oscillator.connect(gainNode)
@@ -86,27 +86,27 @@
         class TheMetronome extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-metronome').content.cloneNode(true)
             )
-            let playBtn = shadow.querySelector('play-button')
-            let indicator = shadow.querySelector('melody-indicator')
-            let melody = shadow.querySelector('melody-input')
-            let tempo = shadow.querySelector('tempo-input')
-            let bpm = shadow.querySelector('counter-input[name=BPM]')
+            const playBtn = shadow.querySelector('play-button')
+            const indicator = shadow.querySelector('melody-indicator')
+            const melodyElm = shadow.querySelector('melody-input')
+            const tempoElm = shadow.querySelector('tempo-input')
+            const bpmElm = shadow.querySelector('counter-input[name=BPM]')
 
-            melody = createInputValue(melody)
-            tempo = createInputValue(tempo, Number)
-            bpm = createInputValue(bpm, Number)
+            const melody = createInputValue(melodyElm)
+            const tempo = createInputValue(tempoElm, Number)
+            const bpm = createInputValue(bpmElm, Number)
 
-            let sound = new Sound()
+            const sound = new Sound()
             let rAFId
             let beatCount = 1
-            let flatfrequency = 600
-            let tapfrequency = 840
-            let sharpfrequency = 2000
-            let frequencies = [sharpfrequency, tapfrequency, flatfrequency]
+            const flatfrequency = 600
+            const tapfrequency = 840
+            const sharpfrequency = 2000
+            const frequencies = [sharpfrequency, tapfrequency, flatfrequency]
             let next = 0
             let iterate = 0
 
@@ -123,8 +123,8 @@
 
             function run() {
               if (sound.context.currentTime >= next) {
-                let m = melody.value[iterate]
-                let f =
+                const m = melody.value[iterate]
+                const f =
                   bpm.value > 0 && beatCount === 1 && iterate === 0
                     ? sharpfrequency
                     : iterate === 0
@@ -208,18 +208,18 @@
         class MelodyInput extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-melody').content.cloneNode(true)
             )
-            let div = shadow.querySelector('div')
+            const div = shadow.querySelector('div')
             window.addEventListener('load', () => {
-              let svg = document
+              const svg = document
                 .querySelector('#tpl-svg')
                 .content.querySelectorAll('svg')
               for (let i = 0; i < svg.length; i++) {
-                let item = svg[i]
-                let button = document.createElement('button')
+                const item = svg[i]
+                const button = document.createElement('button')
                 button.setAttribute(
                   'aria-label',
                   item.getAttribute('aria-label')
@@ -235,7 +235,7 @@
             })
             div.addEventListener('click', (e) => {
               div.querySelector('.checked').classList.remove('checked')
-              let btn = e.composedPath().find((i) => i.tagName === 'BUTTON')
+              const btn = e.composedPath().find((i) => i.tagName === 'BUTTON')
               if (btn) {
                 btn.classList.add('checked')
                 this.value = btn.dataset.value
@@ -275,7 +275,7 @@
         class MelodyIndicator extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-indicator').content.cloneNode(true)
             )
@@ -342,14 +342,14 @@
         class CounterInput extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-counter').content.cloneNode(true)
             )
             this.span = shadow.querySelector('span')
-            let btnDec = shadow.querySelector('button[dec]')
-            let btnInc = shadow.querySelector('button[inc]')
-            let name = this.getAttribute('name')
+            const btnDec = shadow.querySelector('button[dec]')
+            const btnInc = shadow.querySelector('button[inc]')
+            const name = this.getAttribute('name')
             if (name) {
               shadow.querySelector('div[name]').textContent = name
               btnDec.setAttribute('aria-label', `decrease ${name}`)
@@ -369,14 +369,14 @@
             return this._value || 0
           }
           set value(v) {
-            let min = this.hasAttribute('min')
+            const min = this.hasAttribute('min')
               ? Number(this.getAttribute('min'))
               : -Infinity
-            let max = this.hasAttribute('max')
+            const max = this.hasAttribute('max')
               ? Number(this.getAttribute('max'))
               : Infinity
             if (v >= min && v <= max) {
-              let oldVal = this._value
+              const oldVal = this._value
               this._value = v
               this.span.textContent = v
               this.setAttribute('value', v)
@@ -436,7 +436,7 @@
     </template>
     <script>
       // https://en.wikipedia.org/wiki/Tempo
-      let tempoItems = [
+      const tempoItems = [
         {
           name: 'Larghissimo',
           min: 0,
@@ -539,17 +539,17 @@
         class TempoInput extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-tempo').content.cloneNode(true)
             )
             this.counter = shadow.querySelector('counter-input')
             this.select = shadow.querySelector('select')
             for (let i = 0; i < tempoItems.length; i++) {
-              let t = tempoItems[i]
-              let option = document.createElement('option')
-              option.setAttribute('value', `${t.min}-${t.max}`)
-              option.textContent = `${t.name} ${t.min}-${t.max}`
+              const item = tempoItems[i]
+              const option = document.createElement('option')
+              option.setAttribute('value', `${item.min}-${item.max}`)
+              option.textContent = `${item.name} ${item.min}-${item.max}`
               this.select.appendChild(option)
             }
             this.counter.addEventListener('changed', (e) => {
@@ -571,10 +571,10 @@
             this.__value = val
             this.counter.value = val
             if (this.select.value) {
-              let [min, max] = this.select.value.split('-')
+              const [min, max] = this.select.value.split('-')
               if (val < min || val > max) {
-                let newTempo = tempoItems.find(
-                  (t) => val >= t.min && val <= t.max
+                const newTempo = tempoItems.find(
+                  (item) => val >= item.min && val <= item.max
                 )
                 this.select.value = `${newTempo.min}-${newTempo.max}`
               }
@@ -647,11 +647,11 @@
         class PlayButton extends HTMLElement {
           constructor() {
             super()
-            let shadow = this.attachShadow({ mode: 'open' })
+            const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-playbutton').content.cloneNode(true)
             )
-            let btn = shadow.querySelector('button')
+            const btn = shadow.querySelector('button')
             this.playing = false
             btn.addEventListener('click', () => {
               if (this.playing) {
@@ -746,7 +746,7 @@
 
       <svg
         id="!|!"
-        aria-label="treble eighth note with Rest between"
+        aria-label="treble eighth note with rest between"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"

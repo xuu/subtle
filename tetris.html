@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="Description" content="A tetris game." />
-    <meta name="author" content="Axu Wei" />
+    <meta name="Author" content="Axu Wei" />
     <title>Tetris</title>
   </head>
   <body>
@@ -72,27 +72,27 @@
         if (rows < 10 || cols < 10 || blockWidth < 10) {
           throw new Error("At least 10 in 'rows', 'cols', and 'blockWidth'.")
         }
-        let view = createView(rows, cols, blockWidth)
-        let model = createModel(rows, cols)
+        const view = createView(rows, cols, blockWidth)
+        const model = createModel(rows, cols)
         setup(view, model)
         return view.elm
       }
 
       function createView(rows, cols, blockWidth) {
-        let bgGrid = `linear-gradient(to right, white 100%, transparent 0),
+        const bgGrid = `linear-gradient(to right, white 100%, transparent 0),
           linear-gradient(to top, transparent ${blockWidth}px, white 0),
           linear-gradient(to right, var(--color-blank) ${blockWidth}px, white 0)`
-        let bgPos = '1px 1px, 1px -2px, 1px 0'
-        let bgSize = `100% 60px, ${blockWidth + 1}px ${blockWidth + 1}px, ${
+        const bgPos = '1px 1px, 1px -2px, 1px 0'
+        const bgSize = `100% 60px, ${blockWidth + 1}px ${blockWidth + 1}px, ${
           blockWidth + 1
         }px ${blockWidth}px`
-        let bgRepeat = 'no-repeat, repeat, repeat'
-        let bgFill =
+        const bgRepeat = 'no-repeat, repeat, repeat'
+        const bgFill =
           'linear-gradient(to right, var(--color-fill) WIDTHpx, transparent 0),'
-        let bgFillSize = `${blockWidth}px ${blockWidth}px,`
+        const bgFillSize = `${blockWidth}px ${blockWidth}px,`
 
-        let elm = document.createElement('div')
-        let { style } = elm
+        const elm = document.createElement('div')
+        const { style } = elm
         elm.classList.add('tetris')
         elm.dataset.sl = '0/1'
         elm.setAttribute('tabIndex', 0)
@@ -120,11 +120,11 @@
       }
 
       function updateView(view, model) {
-        let {
+        const {
           elm: { style, dataset },
           blockWidth,
         } = view
-        let { data } = model
+        const { data } = model
         let i = 0
         let pos = ''
         if (!data.gameOver) {
@@ -197,13 +197,13 @@
       }
 
       function createModel(rows, cols) {
-        let data = {}
-        let fill = Symbol('fill')
-        let blank = Symbol('blank')
-        let tetrominos = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
-        let randomTetro = () => tetrominos[Math.floor(Math.random() * 7)]
+        const data = {}
+        const fill = Symbol('fill')
+        const blank = Symbol('blank')
+        const tetrominos = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
+        const randomTetro = () => tetrominos[Math.floor(Math.random() * 7)]
 
-        let tetroDoords = (tetro) => {
+        const tetroDoords = (tetro) => {
           switch (tetro) {
             case 'I':
               return [
@@ -259,8 +259,8 @@
           }
         }
 
-        let createMatrix = (rs, cs) => {
-          let m = []
+        const createMatrix = (rs, cs) => {
+          const m = []
           for (let r = 0; r < rs; r++) {
             m.push([])
             for (let c = 0; c < cs; c++) {
@@ -270,7 +270,7 @@
           return m
         }
 
-        let willCrash = (newCoords) =>
+        const willCrash = (newCoords) =>
           newCoords.some(
             ([x, y]) =>
               x < 0 ||
@@ -279,8 +279,8 @@
               (x >= 0 && y >= 0 && data.matrix[y][x] === fill)
           )
 
-        let x0 = Math.floor(cols / 2 - 1)
-        let fillIn = () => {
+        const x0 = Math.floor(cols / 2 - 1)
+        const fillIn = () => {
           data.currentTetroCoords.forEach(([x, y]) => {
             if (y < 0) {
               data.gameOver = true
@@ -296,12 +296,12 @@
           data.nextTetro = randomTetro()
           data.nextTetroCoords = tetroDoords(data.nextTetro)
 
-          let remain = data.matrix.filter((row) =>
+          const remain = data.matrix.filter((row) =>
             row.some((col) => col === blank)
           )
-          let rowsRemain = remain.length
+          const rowsRemain = remain.length
           if (rowsRemain < rows) {
-            let rowsMissing = rows - rowsRemain
+            const rowsMissing = rows - rowsRemain
             data.matrix = [...createMatrix(rowsMissing, cols), ...remain]
             data.score += 100 * Math.pow(2, rowsMissing - 1)
             data.level = derivedLevel(data.score)
@@ -309,8 +309,8 @@
           }
         }
 
-        let moveDown = () => {
-          let newCoords = data.currentTetroCoords.map(([x, y]) => [x, y + 1])
+        const moveDown = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x, y + 1])
           if (willCrash(newCoords)) {
             fillIn()
             return false
@@ -320,25 +320,25 @@
           }
         }
 
-        let dropDown = () => {
+        const dropDown = () => {
           while (moveDown()) {}
         }
 
-        let moveLeft = () => {
-          let newCoords = data.currentTetroCoords.map(([x, y]) => [x - 1, y])
+        const moveLeft = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x - 1, y])
           if (!willCrash(newCoords)) {
             data.currentTetroCoords = newCoords
           }
         }
 
-        let moveRight = () => {
-          let newCoords = data.currentTetroCoords.map(([x, y]) => [x + 1, y])
+        const moveRight = () => {
+          const newCoords = data.currentTetroCoords.map(([x, y]) => [x + 1, y])
           if (!willCrash(newCoords)) {
             data.currentTetroCoords = newCoords
           }
         }
 
-        let rotate = () => {
+        const rotate = () => {
           if (data.currentTetro === 'O') {
             return
           }
@@ -356,7 +356,7 @@
           }
         }
 
-        let init = () => {
+        const init = () => {
           data.currentTetro = randomTetro()
           data.currentTetroCoords = tetroDoords(
             data.currentTetro
@@ -383,7 +383,7 @@
       }
 
       function setup(view, model) {
-        let { data } = model
+        const { data } = model
         let timeStamp = performance.now()
         let rAFId = void 0
 
@@ -420,11 +420,11 @@
         )
         view.elm.addEventListener('touchmove', (e) => {
           e.preventDefault()
-          let t = performance.now()
+          const t = performance.now()
           if (t - t0 < 100) {
             return
           }
-          let {
+          const {
             touches: [{ clientX, clientY }],
           } = e
           t0 = t

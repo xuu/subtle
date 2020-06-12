@@ -130,35 +130,6 @@
           <div class="item">b</div>
         </the-swipe>
       </swipe-indicator> -->
-      <template id="swipe-indicator-tmpl">
-        <style>
-          :host {
-            box-sizing: border-box;
-            display: block;
-          }
-          .indicator {
-            display: flex;
-            justify-content: center;
-            align-content: center;
-            align-items: center;
-            padding: 0.5em 1em;
-            pointer-events: none;
-          }
-          .indicator span {
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            margin: 0 5px;
-            border-radius: 50%;
-            background-color: var(--color-5);
-            opacity: 0.4;
-          }
-          .indicator span.in {
-            background-color: var(--color-1);
-            opacity: 1;
-          }
-        </style>
-      </template>
     </section>
 
     <section class="layout" id="SwipeWithArrow">
@@ -170,39 +141,6 @@
           <div class="item">c</div>
         </the-swipe>
       </swipe-arrow>
-      <template id="swipe-arrow-tmpl">
-        <style>
-          :host {
-            box-sizing: border-box;
-            display: block;
-            position: relative;
-          }
-          button {
-            position: absolute;
-            color: transparent;
-            margin: 0;
-            padding: 0;
-            width: 0;
-            height: 0;
-            border: 15px solid transparent;
-            background-color: transparent;
-            top: 50%;
-            transform: translateY(-50%);
-            overflow: hidden;
-          }
-          .prev {
-            left: 0;
-            border-right-color: white;
-          }
-          .next {
-            right: 0;
-            border-left-color: white;
-          }
-        </style>
-        <slot></slot>
-        <button class="prev">prev</button>
-        <button class="next">next</button>
-      </template>
     </section>
 
     <section class="layout" id="SwipeFade">
