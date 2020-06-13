@@ -203,7 +203,7 @@
         const tetrominos = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
         const randomTetro = () => tetrominos[Math.floor(Math.random() * 7)]
 
-        const tetroDoords = (tetro) => {
+        const tetroCoords = (tetro) => {
           switch (tetro) {
             case 'I':
               return [
@@ -294,7 +294,7 @@
             y,
           ])
           data.nextTetro = randomTetro()
-          data.nextTetroCoords = tetroDoords(data.nextTetro)
+          data.nextTetroCoords = tetroCoords(data.nextTetro)
 
           const remain = data.matrix.filter((row) =>
             row.some((col) => col === blank)
@@ -358,11 +358,11 @@
 
         const init = () => {
           data.currentTetro = randomTetro()
-          data.currentTetroCoords = tetroDoords(
+          data.currentTetroCoords = tetroCoords(
             data.currentTetro
           ).map(([x, y]) => [x + x0, y])
           data.nextTetro = randomTetro()
-          data.nextTetroCoords = tetroDoords(data.nextTetro)
+          data.nextTetroCoords = tetroCoords(data.nextTetro)
           data.score = 0
           data.level = 1
           data.speed = 300
