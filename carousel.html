@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <meta name="Description" content="Swipe Web Component." />
+    <meta name="Description" content="Carousel Web Component." />
     <meta name="Author" content="Axu Wei" />
-    <title>Swipe Component</title>
+    <title>Carousel Component</title>
   </head>
   <body>
     <style>
@@ -64,7 +64,7 @@
       }
     </style>
 
-    <section class="layout" id="TheSwipe">
+    <section class="layout" id="TheCarousel">
       <style>
         #demo-4 > div {
           padding: 20px 10px;
@@ -77,14 +77,19 @@
           transform: translateY(-10px);
         }
       </style>
-      <the-swipe id="demo-1" autoplay continuous>
-        <div class="item">Swipe</div>
+      <the-carousel
+        id="demo-1"
+        autoplay
+        continuous
+        aria-label="Carousel Web Componnet demo"
+      >
+        <div class="item">Carousel</div>
         <div class="item">A Web Component</div>
         <div class="item">Configurable</div>
         <div class="item">Customizable</div>
         <div class="item">Adaptable</div>
-      </the-swipe>
-      <the-swipe
+      </the-carousel>
+      <the-carousel
         id="demo-3"
         current-index="1"
         delay="4000"
@@ -95,12 +100,12 @@
         <div class="item">Continuous</div>
         <div class="item">Duration</div>
         <div class="item">Delay</div>
-      </the-swipe>
-      <!-- <the-swipe id="demo-2">
+      </the-carousel>
+      <!-- <the-carousel id="demo-2">
         <div class="item">Just 2 items</div>
         <div class="item">Can't continuous</div>
-      </the-swipe> -->
-      <the-swipe
+      </the-carousel> -->
+      <the-carousel
         id="demo-4"
         margin-left="35%"
         margin-right="35%"
@@ -112,49 +117,49 @@
         <div><div class="item4">c</div></div>
         <div><div class="item5">d</div></div>
         <div><div class="item5">e</div></div>
-      </the-swipe>
+      </the-carousel>
     </section>
 
-    <section class="layout" id="SwipeWithIndicator">
-      <swipe-indicator>
-        <the-swipe continuous>
+    <section class="layout" id="CarouselWithIndicator">
+      <carousel-indicator>
+        <the-carousel continuous>
           <div class="item">With indicators</div>
           <div class="item">a</div>
           <div class="item">b</div>
           <div class="item">c</div>
-        </the-swipe>
-      </swipe-indicator>
-      <!-- <swipe-indicator>
-        <the-swipe continuous>
+        </the-carousel>
+      </carousel-indicator>
+      <!-- <carousel-indicator>
+        <the-carousel continuous>
           <div class="item">a</div>
           <div class="item">b</div>
-        </the-swipe>
-      </swipe-indicator> -->
+        </the-carousel>
+      </carousel-indicator> -->
     </section>
 
-    <section class="layout" id="SwipeWithArrow">
-      <swipe-arrow>
-        <the-swipe continuous>
-          <div class="item">With arrows</div>
+    <section class="layout" id="CarouselWithButton">
+      <carousel-button>
+        <the-carousel id="carousel-with-button" continuous>
+          <div class="item">With buttons</div>
           <div class="item">a</div>
           <div class="item">b</div>
           <div class="item">c</div>
-        </the-swipe>
-      </swipe-arrow>
+        </the-carousel>
+      </carousel-button>
     </section>
 
-    <section class="layout" id="SwipeFade">
-      <swipe-fade continuous autoplay>
-        <div class="item">SwipeFade</div>
+    <section class="layout" id="CarouselFade">
+      <carousel-fade continuous autoplay>
+        <div class="item">CarouselFade</div>
         <div class="item">a</div>
         <div class="item">b</div>
         <div class="item">c</div>
-      </swipe-fade>
+      </carousel-fade>
     </section>
 
-    <section class="layout" id="SwipeClip">
+    <section class="layout" id="CarouselClip">
       <style>
-        .swipe-clip figure {
+        .carousel-clip figure {
           width: 100%;
           height: 0;
           margin: 0;
@@ -205,16 +210,16 @@
         </div>
       </template>
 
-      <section id="SwipeClip1">
-        <swipe-clip
-          class="swipe-clip item-to-be-appended"
+      <section id="CarouselClip1">
+        <carousel-clip
+          class="carousel-clip item-to-be-appended"
           autoplay
-        ></swipe-clip>
+        ></carousel-clip>
       </section>
 
-      <section id="SwipeCircle">
-        <swipe-circle class="swipe-clip item-to-be-appended" autoplay>
-        </swipe-circle>
+      <section id="CarouselCircle">
+        <carousel-circle class="carousel-clip item-to-be-appended" autoplay>
+        </carousel-circle>
       </section>
     </section>
 
@@ -242,6 +247,6 @@
       <p><a href="https://github.com/xuu/subtle">Code</a></p>
     </footer>
 
-    <script src="./lib/swipe.js"></script>
+    <script src="./lib/carousel.js"></script>
   </body>
 </html>
