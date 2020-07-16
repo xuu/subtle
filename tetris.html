@@ -11,7 +11,7 @@
   <body>
     <style>
       body {
-        font-family: Helvetica, Arial, sans-serif;
+        font-family: -apple-system-font, 'Helvetica Neue', Arial, sans-serif;
         font-size: 12px;
         margin: 0;
         padding: 1em;
@@ -201,9 +201,10 @@
         const fill = Symbol('fill')
         const blank = Symbol('blank')
         const tetrominos = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
+
         const randomTetro = () => tetrominos[Math.floor(Math.random() * 7)]
 
-        const tetroCoords = (tetro) => {
+        const tetroDoords = (tetro) => {
           switch (tetro) {
             case 'I':
               return [
@@ -294,7 +295,7 @@
             y,
           ])
           data.nextTetro = randomTetro()
-          data.nextTetroCoords = tetroCoords(data.nextTetro)
+          data.nextTetroCoords = tetroDoords(data.nextTetro)
 
           const remain = data.matrix.filter((row) =>
             row.some((col) => col === blank)
@@ -358,11 +359,11 @@
 
         const init = () => {
           data.currentTetro = randomTetro()
-          data.currentTetroCoords = tetroCoords(
+          data.currentTetroCoords = tetroDoords(
             data.currentTetro
           ).map(([x, y]) => [x + x0, y])
           data.nextTetro = randomTetro()
-          data.nextTetroCoords = tetroCoords(data.nextTetro)
+          data.nextTetroCoords = tetroDoords(data.nextTetro)
           data.score = 0
           data.level = 1
           data.speed = 300

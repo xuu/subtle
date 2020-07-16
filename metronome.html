@@ -11,6 +11,7 @@
       :root {
         --color-in: #c74343;
         --color-out: aqua;
+        --color-active: rgb(54, 113, 240);
         --color-light: rgba(255, 255, 255, 0.8);
         --color-dark: #191919;
       }
@@ -24,9 +25,7 @@
         font-size: 16px;
         color: var(--color-light);
         background-color: var(--color-dark);
-        font-family: -apple-system-font, BlinkMacSystemFont, 'Helvetica Neue',
-          'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI',
-          'Microsoft YaHei', Arial, sans-serif;
+        font-family: -apple-system-font, 'Helvetica Neue', Arial, sans-serif;
       }
     </style>
   </head>
@@ -45,7 +44,7 @@
           padding-bottom: 10px;
         }
       </style>
-      <melody-input></melody-input>
+      <melody-radios></melody-radios>
       <melody-indicator aria-hidden="true"></melody-indicator>
       <counter-input name="BPM" value="4" min="0" max="9"></counter-input>
       <tempo-input></tempo-input>
@@ -90,23 +89,28 @@
             shadow.appendChild(
               document.querySelector('#tpl-metronome').content.cloneNode(true)
             )
-            const playBtn = shadow.querySelector('play-button')
-            const indicator = shadow.querySelector('melody-indicator')
-            const melodyElm = shadow.querySelector('melody-input')
-            const tempoElm = shadow.querySelector('tempo-input')
-            const bpmElm = shadow.querySelector('counter-input[name=BPM]')
+          }
+          connectedCallback() {
+            const playBtn = this.shadowRoot.querySelector('play-button')
+            const indicator = this.shadowRoot.querySelector('melody-indicator')
+            const melodyElm = this.shadowRoot.querySelector('melody-radios')
+            const tempoElm = this.shadowRoot.querySelector('tempo-input')
+            const bpmElm = this.shadowRoot.querySelector(
+              'counter-input[name=BPM]'
+            )
 
             const melody = createInputValue(melodyElm)
             const tempo = createInputValue(tempoElm, Number)
             const bpm = createInputValue(bpmElm, Number)
 
             const sound = new Sound()
-            let rAFId
-            let beatCount = 1
             const flatfrequency = 600
             const tapfrequency = 840
             const sharpfrequency = 2000
             const frequencies = [sharpfrequency, tapfrequency, flatfrequency]
+
+            let rAFId
+            let beatCount = 1
             let next = 0
             let iterate = 0
 
@@ -118,6 +122,12 @@
               } else {
                 cancelAnimationFrame(rAFId)
                 beatCount = 1
+              }
+            })
+
+            window.addEventListener('keydown', (e) => {
+              if (e.key === ' ') {
+                playBtn.shadowRoot.querySelector('button').click()
               }
             })
 
@@ -182,16 +192,20 @@
           margin-bottom: -20px;
           overflow-x: auto;
           white-space: nowrap;
+        }
+        label {
           position: relative;
         }
-        button {
-          margin: 0;
-          padding: 0;
-          border: 0 none;
-          background-color: transparent;
-          touch-action: manipulation;
+        input {
+          position: absolute;
+          top: 0;
+          left: 0;
+          opacity: 0;
         }
-        .checked {
+        input:focus + svg {
+          box-shadow: inset 0 0 0px 2px var(--color-active);
+        }
+        input:checked + svg {
           background-color: var(--color-out);
         }
         svg {
@@ -200,48 +214,50 @@
           vertical-align: middle;
         }
       </style>
-      <div></div>
+      <div role="radiogroup" aria-label="melody"></div>
     </template>
     <script>
       customElements.define(
-        'melody-input',
-        class MelodyInput extends HTMLElement {
+        'melody-radios',
+        class MelodyRadios extends HTMLElement {
           constructor() {
             super()
+            this.value = '!'
             const shadow = this.attachShadow({ mode: 'open' })
             shadow.appendChild(
               document.querySelector('#tpl-melody').content.cloneNode(true)
             )
-            const div = shadow.querySelector('div')
+          }
+          connectedCallback() {
+            const div = this.shadowRoot.querySelector('div')
             window.addEventListener('load', () => {
               const svg = document
                 .querySelector('#tpl-svg')
                 .content.querySelectorAll('svg')
               for (let i = 0; i < svg.length; i++) {
                 const item = svg[i]
-                const button = document.createElement('button')
-                button.setAttribute(
+                const label = document.createElement('label')
+                const input = document.createElement('input')
+                input.value = item.id
+                input.checked = i === 0
+                input.setAttribute('type', 'radio')
+                input.setAttribute(
                   'aria-label',
                   item.getAttribute('aria-label')
                 )
-                button.setAttribute('data-value', item.id)
+                input.setAttribute('name', 'melody')
                 item.removeAttribute('aria-label')
-                button.appendChild(item)
-                div.appendChild(button)
-                if (i === 0) {
-                  button.classList.add('checked')
-                }
+                label.appendChild(input)
+                label.appendChild(item)
+                div.appendChild(label)
               }
             })
-            div.addEventListener('click', (e) => {
-              div.querySelector('.checked').classList.remove('checked')
-              const btn = e.composedPath().find((i) => i.tagName === 'BUTTON')
-              if (btn) {
-                btn.classList.add('checked')
-                this.value = btn.dataset.value
+            this.addEventListener('input', (e) => {
+              const checked = div.querySelector('input:checked')
+              if (checked) {
+                this.value = checked.value
               }
             })
-            this.value = '!'
           }
         }
       )
@@ -346,22 +362,7 @@
             shadow.appendChild(
               document.querySelector('#tpl-counter').content.cloneNode(true)
             )
-            this.span = shadow.querySelector('span')
-            const btnDec = shadow.querySelector('button[dec]')
-            const btnInc = shadow.querySelector('button[inc]')
-            const name = this.getAttribute('name')
-            if (name) {
-              shadow.querySelector('div[name]').textContent = name
-              btnDec.setAttribute('aria-label', `decrease ${name}`)
-              btnInc.setAttribute('aria-label', `increase ${name}`)
-              this.span.setAttribute('aria-label', `current ${name}`)
-            }
-            btnInc.addEventListener('click', () => {
-              this.value++
-            })
-            btnDec.addEventListener('click', () => {
-              this.value--
-            })
+            this._spanElm = shadow.querySelector('span')
             this.value = Number(this.getAttribute('value')) || 0
             this._inited = true
           }
@@ -378,7 +379,7 @@
             if (v >= min && v <= max) {
               const oldVal = this._value
               this._value = v
-              this.span.textContent = v
+              this._spanElm.textContent = v
               this.setAttribute('value', v)
               if (this._inited && oldVal !== v) {
                 this.dispatchEvent(
@@ -389,6 +390,37 @@
                 )
               }
             }
+          }
+          connectedCallback() {
+            // this.setAttribute('tabindex', 0)
+            const btnDec = this.shadowRoot.querySelector('button[dec]')
+            const btnInc = this.shadowRoot.querySelector('button[inc]')
+            const name = this.getAttribute('name')
+            if (name) {
+              this.shadowRoot.querySelector('div[name]').textContent = name
+              this._spanElm.setAttribute('aria-label', `current ${name}`)
+              btnDec.setAttribute('aria-label', `decrease ${name}`)
+              btnInc.setAttribute('aria-label', `increase ${name}`)
+            }
+            btnInc.addEventListener('click', () => {
+              this.value++
+            })
+            btnDec.addEventListener('click', () => {
+              this.value--
+            })
+            // this.addEventListener('keydown', (e) => {
+            //   switch (e.key) {
+            //     case 'ArrowUp':
+            //     case 'ArrowRight': {
+            //       this.value++
+            //       break
+            //     }
+            //     case 'ArrowLeft':
+            //     case 'ArrowDown': {
+            //       this.value--
+            //     }
+            //   }
+            // })
           }
         }
       )
@@ -427,6 +459,9 @@
           background-position: calc(100% - 0.3em) 50%;
           -webkit-appearance: none;
           appearance: none;
+        }
+        select:focus {
+          outline-color: var(--color-active);
         }
       </style>
       <counter-input name="tempo" value="60" min="0"></counter-input>
@@ -638,6 +673,9 @@
             1.5em 1.5em
           );
         }
+        button:focus {
+          outline-color: var(--color-active);
+        }
       </style>
       <button play aria-label="play or pause the metronome"></button>
     </template>
@@ -678,7 +716,7 @@
     <template id="tpl-svg">
       <svg
         id="!"
-        aria-label="quarter note"
+        aria-label="quarter"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"
@@ -707,7 +745,7 @@
 
       <svg
         id="!!"
-        aria-label="double eighth note"
+        aria-label="double eighth"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"
@@ -726,7 +764,7 @@
 
       <svg
         id="!!!"
-        aria-label="treble eighth note"
+        aria-label="treble eighth"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"
@@ -746,7 +784,7 @@
 
       <svg
         id="!|!"
-        aria-label="treble eighth note with rest between"
+        aria-label="treble eighth with rest between"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"
@@ -766,7 +804,7 @@
 
       <svg
         id="!!!!"
-        aria-label="quadruple sixteenth note"
+        aria-label="quadruple sixteenth"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"
@@ -796,7 +834,7 @@
 
       <svg
         id="!||!"
-        aria-label="quadruple sixteenth note with two rest between"
+        aria-label="quadruple sixteenth with two rest between"
         version="1.1"
         viewBox="0 0 100 80"
         xmlns="http://www.w3.org/2000/svg"

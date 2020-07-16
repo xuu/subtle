@@ -18,22 +18,13 @@
         height: 100%;
       }
       body {
-        font-family: -apple-system-font, BlinkMacSystemFont, 'Helvetica Neue',
-          'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI',
-          'Microsoft YaHei', Arial, sans-serif;
+        font-family: -apple-system-font, 'Helvetica Neue', Arial, sans-serif;
         background-color: black;
       }
       main {
         width: 100%;
         height: 100%;
-        position: relative;
         overflow: hidden;
-      }
-      canvas {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
       }
       select[name='features'] {
         --s-color: rgba(255, 255, 255, 0.8);
@@ -105,9 +96,9 @@
       // https://en.wikipedia.org/wiki/Julia_set
       precision highp float;
 
-      uniform vec2 resolution;
-      uniform vec2 cParam;
-      uniform vec4 range;
+      uniform vec2 u_resolution;
+      uniform vec2 u_param;
+      uniform vec4 u_range;
 
       #define MAX_ITER 50
 
@@ -121,10 +112,8 @@
 
         for (int i = 0; i < MAX_ITER; i++) {
           depth = depth + 1.0;
-          zn = complexMul(zn, zn) + cParam;
-          if ((pow(zn.x, 2.0) + pow(zn.y, 2.0)) >= 4.0) {
-            break;
-          }
+          zn = complexMul(zn, zn) + u_param;
+          if (length(zn) >= 2.0) break;
         }
 
         return depth;
@@ -135,35 +124,33 @@
       }
 
       void main() {
-        vec2 pos = vec2(
-          gl_FragCoord.x * (range.y - range.x) / resolution.x + range.x,
-          gl_FragCoord.y * (range.w - range.z) / resolution.y + range.z
+        vec2 uv = vec2(
+          gl_FragCoord.x * (u_range.y - u_range.x) / u_resolution.x + u_range.x,
+          gl_FragCoord.y * (u_range.w - u_range.z) / u_resolution.y + u_range.z
         );
-        float depth = iterate(pos);
+
+        float depth = iterate(uv);
         depth = depth / float(MAX_ITER);
 
-        // float r = depth;
-        // float g = depth * 0.8;
-        // float b = depth * 0.5;
-
-        float r = depth;
-        float g = refine(cParam.x, depth);
-        float b = refine(cParam.y, depth);
-        gl_FragColor = vec4(r, g, b, 1);
+        vec3 color = vec3(
+          depth,
+          refine(u_param.x, depth),
+          refine(u_param.y, depth)
+        );
+        gl_FragColor = vec4(color, 1);
       }
     </script>
     <script>
       const selector = document.querySelector('select[name=features]')
       const divc = document.querySelector('#c')
       const canvas = document.querySelector('canvas')
-      const gl = canvas.getContext('webgl')
-      const fs = document.querySelector('#frag').textContent
-      const { program, render } = fragShader(gl, fs)
-
+      const { gl, program, render } = fragShader(
+        canvas,
+        document.querySelector('#frag').textContent
+      )
       const locations = {
-        parameter: gl.getUniformLocation(program, 'cParam'),
-        range: gl.getUniformLocation(program, 'range'),
-        resolution: gl.getUniformLocation(program, 'resolution'),
+        parameter: gl.getUniformLocation(program, 'u_param'),
+        range: gl.getUniformLocation(program, 'u_range'),
       }
 
       const ratio = window.innerHeight / window.innerWidth
@@ -173,8 +160,8 @@
         maxR: init,
         minI: -init * ratio,
         maxI: init * ratio,
-        cParamR: -0.4,
-        cParamI: 0.6,
+        paramR: -0.4,
+        paramI: 0.6,
       }
 
       const refs = {
@@ -183,9 +170,9 @@
       }
 
       setup()
-      draw()
+      run()
 
-      function draw() {
+      function run() {
         gl.useProgram(program)
         gl.uniform4f(
           locations.range,
@@ -194,8 +181,7 @@
           data.maxI,
           data.minI
         )
-        gl.uniform2f(locations.parameter, data.cParamR, data.cParamI)
-        gl.uniform2f(locations.resolution, gl.canvas.width, gl.canvas.height)
+        gl.uniform2f(locations.parameter, data.paramR, data.paramI)
         render()
       }
 
@@ -216,12 +202,12 @@
         data.maxI += dy
       }
 
-      function cParamUpdate(dx, dy) {
+      function paramUpdate(dx, dy) {
         const max = 3
-        data.cParamR += (dx / canvas.width) * 1.0
-        data.cParamI += (dy / canvas.height) * 1.0
-        data.cParamR = clampNum(data.cParamR, -max, max)
-        data.cParamI = clampNum(data.cParamI, -max, max)
+        data.paramR += (dx / canvas.width) * 1.0
+        data.paramI += (dy / canvas.height) * 1.0
+        data.paramR = clampNum(data.paramR, -max, max)
+        data.paramI = clampNum(data.paramI, -max, max)
       }
 
       function setup() {
@@ -259,12 +245,12 @@
               move(t1.clientX - x0, y0 - t1.clientY)
             }
             if (numTouchs === 1) {
-              cParamUpdate(t1.clientX - x0, t1.clientY - y0)
+              paramUpdate(t1.clientX - x0, t1.clientY - y0)
               updateDivc()
             }
             x0 = t1.clientX
             y0 = t1.clientY
-            draw()
+            run()
           },
           { passive: false }
         )
@@ -275,7 +261,7 @@
           (e) => {
             e.preventDefault()
             zoom(e.deltaY < 0 ? 0.99 : 1.01)
-            draw()
+            run()
           },
           {
             passive: false,
@@ -288,10 +274,10 @@
               if (e.shiftKey) {
                 move(e.movementX, -e.movementY)
               } else {
-                cParamUpdate(e.movementX, e.movementY)
+                paramUpdate(e.movementX, e.movementY)
                 updateDivc()
               }
-              draw()
+              run()
             }
           },
           false
@@ -306,18 +292,18 @@
             refs.rAFId = null
           }
           if (value) {
-            ;[data.cParamR, data.cParamI] = value
+            ;[data.paramR, data.paramI] = value
               .split(',')
               .map((n) => parseFloat(n))
             updateDivc()
-            draw()
+            run()
           }
         })
       }
 
       function updateDivc() {
-        divc.textContent = `c=${data.cParamR}${data.cParamI < 0 ? '' : '+'}${
-          data.cParamI
+        divc.textContent = `c=${data.paramR}${data.paramI < 0 ? '' : '+'}${
+          data.paramI
         }i`
       }
 
@@ -326,10 +312,10 @@
         refs.angle += 0.01
         refs.angle = refs.angle > 2 * Math.PI ? 0 : refs.angle
         // refs.angle = (performance.now() / 1000 / 8) * 2 * Math.PI
-        data.cParamR = 0.7885 * Math.cos(refs.angle)
-        data.cParamI = 0.7885 * Math.sin(refs.angle)
+        data.paramR = 0.7885 * Math.cos(refs.angle)
+        data.paramI = 0.7885 * Math.sin(refs.angle)
         updateDivc()
-        draw()
+        run()
         refs.rAFId = requestAnimationFrame(animated1)
       }
 
