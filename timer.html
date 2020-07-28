@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="Author" content="Axu Wei" />
+    <title>Timer</title>
+    <style>
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        font-family: -apple-system-font, 'Helvetica Neue', Arial, sans-serif;
+        background-color: black;
+        overflow: hidden;
+      }
+      .btns {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        text-align: center;
+        padding: 1em;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .btns label {
+        margin: 0 0.3em;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+    <div class="btns">
+      <label>
+        <input type="radio" name="timer" value="5" checked />
+        5 seconds
+      </label>
+      <label>
+        <input type="radio" name="timer" value="10" />
+        10 seconds
+      </label>
+      <label>
+        <input type="radio" name="timer" value="60" />
+        1 minute
+      </label>
+    </div>
+    <script src="./lib/webglkit.js"></script>
+    <script id="frag" type="x-shader/x-fragment">
+      precision highp float;
+
+      uniform vec2 u_resolution;
+      uniform float u_time;
+      uniform float u_wait_time;
+
+      #define Ss smoothstep
+      #define PI 3.1415926
+
+      const float rotation_time=.5;// .5 seconds
+      // const float wait_time=5.;// 5 seconds
+      // const float wait_time=10.;// 10 seconds
+      // const float wait_time=60.;// 1 minute
+
+      mat2 rot(float a){
+        float s=sin(a);
+        float c=cos(a);
+        mat2 r=mat2(c,-s,s,c);
+        return r;
+      }
+
+      float curve(vec2 uv){
+        float v=uv.x-.06*cos(uv.y*13.);
+        float d=.02*cos(uv.y*5.);
+        float col=Ss(.0,.001,v)*Ss(d+.003,d+.002,v)*step(-.31,uv.y)*(1.-step(.31,uv.y));
+        return col;
+      }
+
+      float light(vec2 uv){
+        uv-=vec2(-.065,.02);
+        float v=uv.x-.06*cos(uv.y*13.);
+        float d=.02*sin(uv.y*5.-.4);
+        float col=Ss(.0,.001,v)*Ss(d+.005,d+.001,v)*step(.0,uv.y)*(1.-step(.28,uv.y));
+        return col*.7;
+      }
+
+      float _content(vec2 uv){
+        vec2 offs=vec2(-.075,.005);
+        vec2 uv2=uv*vec2(-1,1)-offs;
+        uv-=offs;
+        float v=uv.x-.065*cos(uv.y*13.)-.01;
+        float v2=uv2.x-.065*cos(uv2.y*13.)-.01;
+        float col=Ss(.0,.001,v)*Ss(.0,.001,v2);
+        col*=step(-.005,uv.y)*(1.-step(.5,uv.y));
+        return col;
+      }
+
+      float t=u_time;
+      float t1=rotation_time;
+      float t2=u_wait_time;
+      float tt=t1+t2;
+      float n=floor(t/tt);
+      float s=step(n*tt,t)*(1.-step(n*tt+t1,t));
+
+      float content(vec2 uv){
+        float m=mod(n,2.);
+        float wt=(t-n*tt-t1)/t2;
+        float t_a=(1.-s)*m;
+        float t_b=(1.-s)*(1.-m);
+
+        float up=(.27-.1)*wt-.27;//from -.27 to -.1
+        float down=.2-(.2-.03)*wt;//from .2 to .03
+        float a=_content(uv+vec2(0.,t_a*up-s*(1.-m)*.1));
+        a*=(t_b*Ss(.002,.0,uv.y-.015*sin((uv.x+.2)*27.)-down)+t_a+s*(1.-m));
+        float b=_content(uv*rot(PI)+vec2(0.,t_b*up-s*m*.1));
+        b*=(t_a*Ss(.0,.002,uv.y-.015*sin((uv.x+.25)*27.)+down)+t_b+s*m);
+
+        // a=_content(uv+vec2(0.,-.1));
+        // a=_content(uv+vec2(0.,-.27));
+        // a=_content(uv)*Ss(.002,.0,uv.y-.015*sin((uv.x+.2)*27.)-(.2));
+        // a=_content(uv)*Ss(.002,.0,uv.y-.015*sin((uv.x+.2)*27.)-(.03));
+
+        float l=step(-.001,uv.x)*(1.-step(.001,uv.x));
+        a+=t_a*l*(1.-step(.3,uv.y))*step(-.025,uv.y);
+        b+=t_b*l*(1.-step(.025,uv.y))*step(-.3,uv.y);
+
+        return(a+b)*(1.-step(.3,abs(uv.y)));
+      }
+
+      float bottle(vec2 uv){
+        float time=s*(n+(t-n*tt)/t1)*PI+(1.-s)*(n+1.)*PI;
+        uv=uv*rot(PI)*rot(time);
+
+        float col=curve(uv-vec2(-.09,0));
+        col+=curve((uv-vec2(.09,0))*vec2(-1,1));
+        col+=light(uv);
+        col+=light(uv*rot(PI));
+        float cover=step(.31,abs(uv.y))*(1.-step(.32,abs(uv.y)))*(1.-step(.128,abs(uv.x)));
+        col+=cover;
+        col+=content(uv);
+        return col;
+      }
+
+      void main(){
+        vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
+        vec3 col=vec3(0.);
+
+        col+=bottle(uv);
+
+        //col+=step(-.001,uv.x)*(1.-step(.001,uv.x))*vec3(1.,0.,0.);
+        //col+=step(-.001,uv.y)*(1.-step(.001,uv.y))*vec3(1.,0.,0.);
+        gl_FragColor=vec4(col,1.);
+      }
+    </script>
+    <script>
+      const canvas = document.querySelector('canvas')
+      const { gl, program, render } = fragShader(
+        canvas,
+        document.querySelector('#frag').textContent
+      )
+
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+
+      let waitTime = 5
+
+      const waitTimeLoc = gl.getUniformLocation(program, 'u_wait_time')
+      function timer() {
+        gl.useProgram(program)
+        gl.uniform1f(waitTimeLoc, waitTime)
+        render()
+      }
+
+      animate(timer)
+
+      document
+        .querySelector('.btns')
+        .addEventListener('input', ({ target: { value } }) => {
+          waitTime = parseFloat(value)
+          render()
+        })
+    </script>
+  </body>
+</html>
