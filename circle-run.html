@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="Author" content="Axu Wei" />
+    <title>Circle Run</title>
+    <style>
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        font-family: -apple-system-font, 'Helvetica Neue', Arial, sans-serif;
+        background-color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+    <script src="./lib/webglkit.js"></script>
+    <script id="frag" type="x-shader/x-fragment">
+      precision highp float;
+
+      #define Ss smoothstep
+      #define PI 3.1415926
+      #define L.2
+
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      float line(vec2 uv,float a){
+      float w=.002;
+      float offs=(L-.01)*sin(u_time+a);
+      float col=Ss(w+.01,w+.008,length(uv+vec2(offs,0.)));
+      col+=Ss(-w,-w,uv.y)-Ss(w,w,uv.y);
+      col*=Ss(-L,-L,uv.x)-Ss(L,L,uv.x);
+      return col;
+      }
+
+      float rotLine(vec2 uv,float a){
+      float s=sin(a);
+      float c=cos(a);
+      mat2 rot=mat2(c,-s,s,c);
+      return line(uv*rot,a);
+      }
+
+      float circle(vec2 uv){
+      float l=L-.004;
+      float col=Ss(l,l+.005,length(uv));
+      col*=Ss(l+.008,l+.006,length(uv));
+      return col;
+      }
+
+      void main(){
+      vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
+      vec3 col=vec3(0);
+
+      col+=rotLine(uv,0.);
+      col+=rotLine(uv,PI/2.);
+      col+=rotLine(uv,PI/4.);
+      col+=rotLine(uv,PI*3./4.);
+      col+=rotLine(uv,PI/8.);
+      col+=rotLine(uv,PI*3./8.);
+      col+=rotLine(uv,PI*5./8.);
+      col+=rotLine(uv,PI*7./8.);
+
+      col+=circle(uv);
+
+      gl_FragColor=vec4(col,1.);
+      }
+    </script>
+    <script>
+      const canvas = document.querySelector('canvas')
+      const { render } = fragShader(
+        canvas,
+        document.querySelector('#frag').textContent
+      )
+
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+
+      animate(render)
+    </script>
+  </body>
+</html>
