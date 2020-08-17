@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="Description" content="Fractal Drawing in WebGL." />
     <meta name="Author" content="Axu Wei" />
-    <title>Fractal</title>
+    <title>Shader Fractal</title>
     <style>
       * {
         margin: 0;
@@ -69,7 +69,12 @@
   <body>
     <main>
       <canvas></canvas>
-      <select name="features" value="-0.4,0.6">
+      <select name="features">
+        <optgroup label="Animated Complex Parameters">
+          <option value="a1" selected>
+            c=0.7885e to the power i * a, a from 0 to 2 * PI
+          </option>
+        </optgroup>
         <optgroup label="Featured Complex Parameters">
           <option value="-0.4,0.6">c=-0.4+0.6i</option>
           <option value="0.285,0">c=0.285</option>
@@ -83,13 +88,7 @@
           <option value="0,-0.8">c=-0.8i</option>
           <option value="0,0">c=0</option>
         </optgroup>
-        <optgroup label="Animated Complex Parameters">
-          <option value="a1">
-            c=0.7885e to the power i * a, a from 0 to 2 * PI
-          </option>
-        </optgroup>
       </select>
-      <div id="c"></div>
     </main>
     <script src="./lib/webglkit.js"></script>
     <script id="frag" type="x-shader/x-fragment">
@@ -171,6 +170,7 @@
 
       setup()
       run()
+      animated1()
 
       function run() {
         gl.useProgram(program)
@@ -295,16 +295,9 @@
             ;[data.paramR, data.paramI] = value
               .split(',')
               .map((n) => parseFloat(n))
-            updateDivc()
             run()
           }
         })
-      }
-
-      function updateDivc() {
-        divc.textContent = `c=${data.paramR}${data.paramI < 0 ? '' : '+'}${
-          data.paramI
-        }i`
       }
 
       // https://en.wikipedia.org/wiki/Julia_set#/media/File:JSr07885.gif
@@ -314,7 +307,6 @@
         // refs.angle = (performance.now() / 1000 / 8) * 2 * Math.PI
         data.paramR = 0.7885 * Math.cos(refs.angle)
         data.paramI = 0.7885 * Math.sin(refs.angle)
-        updateDivc()
         run()
         refs.rAFId = requestAnimationFrame(animated1)
       }
